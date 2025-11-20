@@ -1,0 +1,3 @@
+C:/Users/italo/Documents/Pesquisa/qmc/build/CMakeFiles/qmc.dir
+C:/Users/italo/Documents/Pesquisa/qmc/build/CMakeFiles/edit_cache.dir
+C:/Users/italo/Documents/Pesquisa/qmc/build/CMakeFiles/rebuild_cache.dir

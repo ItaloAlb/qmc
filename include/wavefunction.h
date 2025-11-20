@@ -1,0 +1,39 @@
+#ifndef WAVEFUNCTION_H
+#define WAVEFUNCTION_H
+
+#include <vector>
+#include <cmath>
+
+#include "constants.h"
+
+
+class WaveFunction {
+    protected:
+        int nParticles, dim, stride;
+
+        std::vector<double> params;
+    public: 
+        WaveFunction(std::vector<double> params,
+            int nParticles = Constants::DEFAULT_N_PARTICLE, 
+            int dim = Constants::DEFAULT_N_DIM);
+
+        virtual ~WaveFunction() = default;
+
+        std::vector<double> getDrift(const double* position) const;
+
+        void setParameters(const std::vector<double>& newParams);
+        
+        const std::vector<double>& getParameters() const;
+
+        virtual std::vector<double> getDrift(const double* position, const double* masses) const;
+
+        virtual std::vector<double> getLaplacian(const double* position) const;
+
+        virtual double trialWaveFunction(const double* position) const = 0;
+
+        int getNParticles() const { return nParticles; };
+
+        int getDim() const { return dim; };
+};
+
+#endif
