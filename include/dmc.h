@@ -5,6 +5,7 @@
 #include <random>
 #include <omp.h>
 #include <deque>
+#include <numeric>
 
 #include <iostream>
 #include <fstream>
