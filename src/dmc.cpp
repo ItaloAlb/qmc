@@ -286,3 +286,67 @@ void DMC::initializeWalkers() {
     referenceEnergy = totalEnergy / nWalkers;
     meanEnergy = referenceEnergy;
 }
+
+void DMC::run() {
+    int nBlockSteps = 1000;
+    int nStepsPerBlock = 100;
+
+    double blockTime = deltaTau * nStepsPerBlock;
+    
+    const int runningAverageWindow = 500; 
+
+    std::ofstream fout("dmc.dat");
+    std::deque<double> energyQueue;
+    
+    std::vector<double> blockMeanEnergies;
+    blockMeanEnergies.reserve(nBlockSteps);
+
+    for (int j = 0; j < nBlockSteps; j++) {
+        BlockResult blockResult = blockStep(nStepsPerBlock);
+
+        energyQueue.push_back(blockResult.energy);
+        if (energyQueue.size() > runningAverageWindow) {
+            energyQueue.pop_front();
+        }
+
+        meanEnergy = std::accumulate(energyQueue.begin(), energyQueue.end(), 0.0) / energyQueue.size();
+
+        updateReferenceEnergy(blockResult.energy, blockTime); 
+
+        fout << j << " "
+             << blockResult.energy << " "
+             << referenceEnergy << " "
+             << meanEnergy << " "
+             << nWalkers << " "
+             << blockResult.variance << " "
+             << blockResult.stdError << "\n";
+
+        std::cout << "Block " << std::setw(4) << j
+                    << " | Block Energy = " << std::fixed << std::setprecision(8) << blockResult.energy
+                    << " | Reference Energy = " << std::fixed << std::setprecision(8) << referenceEnergy
+                    << " | Mean Energy = " << std::fixed << std::setprecision(8) << meanEnergy
+                    << " | Population = " << std::fixed << nWalkers
+                    << " | Variance = " << std::fixed << std::setprecision(8) << blockResult.variance
+                    << " | Std Error = " << std::fixed << std::setprecision(8) << blockResult.stdError
+                    << std::endl;
+    }
+
+    fout.close();
+
+    double variance = 0.0;
+    for (double energy : energyQueue) {
+        variance += (energy - meanEnergy) * (energy - meanEnergy);
+    }
+    
+    double stdError = 0.0;
+    if (energyQueue.size() > 1) {
+        variance /= (energyQueue.size() - 1); 
+        
+        stdError = std::sqrt(variance / energyQueue.size());
+    }
+
+    std::cout << std::fixed << std::setprecision(8);
+    std::cout << "Mean Energy: " << meanEnergy << std::endl;
+    std::cout << "Variance: " << variance << std::endl;
+    std::cout << "Standard Error: " << stdError << std::endl;
+}

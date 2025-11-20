@@ -4,6 +4,11 @@
 #include <vector>
 #include <random>
 #include <omp.h>
+#include <deque>
+
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 #include "constants.h"
 #include "hamiltonian.h"
