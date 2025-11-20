@@ -1,13 +1,29 @@
 // src/main.cpp
-#include <iostream>
-#include "qmc.h" // Apenas para testar se o include funciona
+#include "dmc.h"
+#include "wavefunctions/hydrogen_wf.h"
+#include "hamiltonians/coulomb_hamiltonian.h"
 
 int main() {
-    std::cout << "Ola, Mundo! O projeto QMC compilou com sucesso." << std::endl;
+    std::cout << "========================================\n";
+    std::cout << "   DMC TEST: HYDROGEN ATOM (Ground State)\n";
+    std::cout << "========================================\n";
 
-    // Você pode até criar um objeto para testar a classe
-    QMC qmc_solver;
-    qmc_solver.run();
+    // --- Parâmetros Físicos ---
+    std::vector<double> masses = {1.0, 1.0};
+    std::vector<double> charges = {1.0, -1.0};
+    std::vector<double> alpha = {1.0};
+
+
+    CoulombHamiltonian hamiltonian(2, 2, masses, charges);
+    HydrogenWF wf(alpha, 2, 2);
+
+    double deltaTau = 0.01;
+
+    std::cout << "Initializing DMC Engine..." << std::endl;
+    
+    DMC dmc(hamiltonian, wf, deltaTau);
+
+    dmc.run();
 
     return 0;
 }

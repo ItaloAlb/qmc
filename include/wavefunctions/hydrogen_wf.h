@@ -2,8 +2,8 @@
 
 class HydrogenWF : public WaveFunction {
 public:
-    HydrogenWF(int nParticles, int dim, const std::vector<double>& params) 
-        : WaveFunction(nParticles, dim, params) {}
+    HydrogenWF(const std::vector<double>& params, int nParticles, int dim) 
+        : WaveFunction(params, nParticles, dim) {}
 
     double trialWaveFunction(const double* position) const override {
         double alpha = params[0]; 
