@@ -1,16 +1,8 @@
 # ninja log v6
-1815	2811	7853776088011826	bin/qmc_simulation.exe	5b5b9b9845088e97
-17	1814	7853776070023540	CMakeFiles/qmc_simulation.dir/src/dmc.cpp.obj	f1cd85d8c9b895a0
-76	2522	7853770468984428	CMakeFiles/qmc_simulation.dir/src/main.cpp.obj	d9d7e40bb9cf36c5
-83	2561	7853770469050946	CMakeFiles/qmc_simulation.dir/src/qmc.cpp.obj	f1b3f577b8d59c51
-29	702	7853776070122569	CMakeFiles/qmc_simulation.dir/src/hamiltonian.cpp.obj	dd2bba8e23dfd191
-24	758	7853776070093099	CMakeFiles/qmc_simulation.dir/src/wavefunction.cpp.obj	a411b75da3b15316
-89	901	7853770469112546	CMakeFiles/qmc_simulation.dir/src/vmc.cpp.obj	8c3bfb14c2370722
-6	323	7853776960244619	build.ninja	c3027a0f05f41a92
-89	208	7853776961695027	CMakeFiles/qmc.dir/src/vmc.cpp.obj	6610aa827798d04e
-82	835	7853776961682845	CMakeFiles/qmc.dir/src/qmc.cpp.obj	44d5b27ef57cf56e
-75	842	7853776961621654	CMakeFiles/qmc.dir/src/main.cpp.obj	cfda20b6fcaf6a6e
-209	959	7853776962944223	CMakeFiles/qmc.dir/src/wavefunction.cpp.obj	cc7a94921de9629a
-836	1355	7853776969209345	CMakeFiles/qmc.dir/src/hamiltonian.cpp.obj	ad2290385dd7dcfb
-96	1837	7853776961830465	CMakeFiles/qmc.dir/src/dmc.cpp.obj	999fe1a82a8b971
-1837	2100	7853776979210925	bin/qmc.exe	f95099e6e2b35a19
+27	127	7853931246296185	CMakeFiles/qmc.dir/src/vmc.cpp.obj	396632870a5c2f0d
+45	598	7853931246504788	CMakeFiles/qmc.dir/src/hamiltonian.cpp.obj	851e28e8aed554a2
+38	641	7853931246504788	CMakeFiles/qmc.dir/src/wavefunction.cpp.obj	52c87c7a9ed44506
+23	692	7853931246296185	CMakeFiles/qmc.dir/src/qmc.cpp.obj	6e30a134793a40f7
+17	1370	7853931246296185	CMakeFiles/qmc.dir/src/main.cpp.obj	520cde072aff1650
+32	1679	7853931246435517	CMakeFiles/qmc.dir/src/dmc.cpp.obj	7993d939ab082642
+1679	1918	7853931262924009	bin/qmc.exe	4d4ad61dde305b8c

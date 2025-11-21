@@ -1,8 +1,5 @@
 #include "dmc.h"
 
-#include "dmc.h"
-#include <omp.h> // Para omp_get_max_threads
-
 DMC::DMC(const Hamiltonian& hamiltonian_, 
          const WaveFunction& wf_, 
          double deltaTau_, 
@@ -23,20 +20,19 @@ DMC::DMC(const Hamiltonian& hamiltonian_,
     this->nParticles = hamiltonian.getNParticles();
     this->dim = hamiltonian.getDim();
 
-    positions.resize(nWalkers * stride);
-    drifts.resize(nWalkers * stride);
-    localEnergy.resize(nWalkers);
-
     int nThreads = omp_get_max_threads();
+    if (nThreads < 1) nThreads = 1;
+
+    omp_set_num_threads(nThreads);
+
     gens.resize(nThreads);
 
     std::random_device rd;
-    for (int i = 0; i < nThreads; i++)
-    {
+    for (int i = 0; i < nThreads; i++) {
         gens[i].seed(rd() + i);
     }
     
-    initializeWalkers();
+    // initializeWalkers();
 }
 
 
@@ -288,14 +284,14 @@ void DMC::initializeWalkers() {
 }
 
 void DMC::run() {
-    int nBlockSteps = 1000;
+    int nBlockSteps = 10;
     int nStepsPerBlock = 100;
 
     double blockTime = deltaTau * nStepsPerBlock;
     
     const int runningAverageWindow = 500; 
 
-    std::ofstream fout("dmc.dat");
+    std::ofstream fout("bin/dmc.dat");
     std::deque<double> energyQueue;
     
     std::vector<double> blockMeanEnergies;
@@ -313,13 +309,13 @@ void DMC::run() {
 
         updateReferenceEnergy(blockResult.energy, blockTime); 
 
-        fout << j << " "
-             << blockResult.energy << " "
-             << referenceEnergy << " "
-             << meanEnergy << " "
-             << nWalkers << " "
-             << blockResult.variance << " "
-             << blockResult.stdError << "\n";
+        // fout << j << " "
+        //      << blockResult.energy << " "
+        //      << referenceEnergy << " "
+        //      << meanEnergy << " "
+        //      << nWalkers << " "
+        //      << blockResult.variance << " "
+        //      << blockResult.stdError << "\n";
 
         std::cout << "Block " << std::setw(4) << j
                     << " | Block Energy = " << std::fixed << std::setprecision(8) << blockResult.energy
@@ -331,7 +327,7 @@ void DMC::run() {
                     << std::endl;
     }
 
-    fout.close();
+    // fout.close();
 
     double variance = 0.0;
     for (double energy : energyQueue) {

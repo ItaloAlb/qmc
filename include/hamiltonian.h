@@ -1,3 +1,6 @@
+#ifndef HAMILTONIAN_H
+#define HAMILTONIAN_H
+
 #include "wavefunction.h"
 
 class Hamiltonian {
@@ -26,3 +29,5 @@ class Hamiltonian {
 
         const std::vector<double>& getCharges() const {return this->charges; };
 };
+
+#endif

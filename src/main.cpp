@@ -8,7 +8,6 @@ int main() {
     std::cout << "   DMC TEST: HYDROGEN ATOM (Ground State)\n";
     std::cout << "========================================\n";
 
-    // --- Parâmetros Físicos ---
     std::vector<double> masses = {1.0, 1.0};
     std::vector<double> charges = {1.0, -1.0};
     std::vector<double> alpha = {1.0};
@@ -21,7 +20,10 @@ int main() {
 
     std::cout << "Initializing DMC Engine..." << std::endl;
     
-    DMC dmc(hamiltonian, wf, deltaTau);
+    bool useFixedNode = false;
+    bool useMaxBranch = true;
+
+    DMC dmc(hamiltonian, wf, deltaTau, 20000, useFixedNode, useMaxBranch);
 
     dmc.run();
 

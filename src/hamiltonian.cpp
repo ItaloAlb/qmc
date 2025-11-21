@@ -14,7 +14,7 @@ double Hamiltonian::getLocalEnergy(const WaveFunction& wf, const double* positio
 
     double kineticEnergy = 0.0;
     for(int i = 0; i < nParticles; i++) {
-        double _t = laplacian[i] / psi;
+        double _t = laplacian[i];
         kineticEnergy -= 0.5 / masses[i] * _t;
     }
 
