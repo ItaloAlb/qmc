@@ -5,6 +5,7 @@
 #include <random>
 #include <omp.h>
 #include <numeric>
+#include <memory>
 
 #include "hamiltonian.h"
 #include "wavefunction.h"

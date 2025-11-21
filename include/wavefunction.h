@@ -17,7 +17,9 @@ class WaveFunction {
             int nParticles = Constants::DEFAULT_N_PARTICLE, 
             int dim = Constants::DEFAULT_N_DIM);
 
-        virtual ~WaveFunction() = default;
+        virtual WaveFunction* clone() const = 0;
+
+        virtual ~WaveFunction() = default; 
 
         std::vector<double> getDrift(const double* position) const;
 

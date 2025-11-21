@@ -41,15 +41,15 @@ int main() {
 
 
     std::vector<double> alphaStart = {0.1, 0.1};
-    std::vector<double> alphaEnd   = {1.0, 1.0};
+    std::vector<double> alphaEnd   = {3.0, 3.0};
     std::vector<double> alphaStep  = {0.05, 0.05};
 
 
-    CoulombHamiltonian hamiltonian(3, 2, masses, charges);
+    CoulombHamiltonian hamiltonian(3, 3, masses, charges);
     // HydrogenWF wf(alpha, 2, 2);
-    HeliumWF wf(alpha, 3, 2);
+    HeliumWF wf(alpha, 3, 3);
 
-    double deltaTau = 0.001;
+    double deltaTau = 0.01;
     
     bool useFixedNode = true;
     bool useMaxBranch = true;
@@ -67,9 +67,9 @@ int main() {
     std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
     std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
 
-    DMC dmc(hamiltonian, wf, deltaTau, 20000, useFixedNode, useMaxBranch);
+    // DMC dmc(hamiltonian, wf, deltaTau, 20000, useFixedNode, useMaxBranch);
 
-    dmc.run();
+    // dmc.run();
 
     return 0;
 }

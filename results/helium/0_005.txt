@@ -1,0 +1,3 @@
+Mean Energy: -12.98126888
+Variance: 0.01741775
+Standard Error: 0.00590216

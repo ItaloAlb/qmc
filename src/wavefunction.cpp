@@ -70,7 +70,6 @@ std::vector<double> WaveFunction::getLaplacian(const double* position) const {
             double deriv = (forwardLnPsi - backwardLnPsi) / twoH;
             gradLnSq += deriv * deriv;
         }
-
         laplacians[p] = lapLn + gradLnSq;
     }
 

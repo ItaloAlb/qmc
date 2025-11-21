@@ -8,8 +8,7 @@ Hamiltonian::Hamiltonian(int nParticles_, int dim_, std::vector<double> masses_,
 
 double Hamiltonian::getLocalEnergy(const WaveFunction& wf, const double* position) const {
     double potentialEnergy = getPotential(position);
-    
-    double psi = wf.trialWaveFunction(position);
+
     std::vector<double> laplacian = wf.getLaplacian(position);
 
     double kineticEnergy = 0.0;

@@ -5,6 +5,11 @@ public:
     HydrogenWF(const std::vector<double>& params, int nParticles, int dim) 
         : WaveFunction(params, nParticles, dim) {}
 
+
+    WaveFunction* clone() const override {
+        return new HydrogenWF(*this);
+    }
+    
     double trialWaveFunction(const double* position) const override {
         double alpha = params[0]; 
         

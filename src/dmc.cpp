@@ -284,24 +284,19 @@ void DMC::initializeWalkers() {
 }
 
 void DMC::run() {
-    int nBlockSteps = 1000;
-    int nStepsPerBlock = 100;
-
-    double blockTime = deltaTau * nStepsPerBlock;
-    
-    const int runningAverageWindow = 500; 
+    double blockTime = deltaTau * Constants::N_STEPS_PER_BLOCK;
 
     std::ofstream fout("bin/dmc.dat");
     std::deque<double> energyQueue;
     
     std::vector<double> blockMeanEnergies;
-    blockMeanEnergies.reserve(nBlockSteps);
+    blockMeanEnergies.reserve(Constants::N_BLOCK_STEPS);
 
-    for (int j = 0; j < nBlockSteps; j++) {
-        BlockResult blockResult = blockStep(nStepsPerBlock);
+    for (int j = 0; j < Constants::N_BLOCK_STEPS; j++) {
+        BlockResult blockResult = blockStep(Constants::N_STEPS_PER_BLOCK);
 
         energyQueue.push_back(blockResult.energy);
-        if (energyQueue.size() > runningAverageWindow) {
+        if (energyQueue.size() > Constants::RUNNING_AVERAGE_WINDOW) {
             energyQueue.pop_front();
         }
 
