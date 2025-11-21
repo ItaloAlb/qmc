@@ -32,7 +32,7 @@ DMC::DMC(const Hamiltonian& hamiltonian_,
         gens[i].seed(rd() + i);
     }
     
-    // initializeWalkers();
+    initializeWalkers();
 }
 
 
@@ -284,7 +284,7 @@ void DMC::initializeWalkers() {
 }
 
 void DMC::run() {
-    int nBlockSteps = 10;
+    int nBlockSteps = 1000;
     int nStepsPerBlock = 100;
 
     double blockTime = deltaTau * nStepsPerBlock;
@@ -309,13 +309,13 @@ void DMC::run() {
 
         updateReferenceEnergy(blockResult.energy, blockTime); 
 
-        // fout << j << " "
-        //      << blockResult.energy << " "
-        //      << referenceEnergy << " "
-        //      << meanEnergy << " "
-        //      << nWalkers << " "
-        //      << blockResult.variance << " "
-        //      << blockResult.stdError << "\n";
+        fout << j << " "
+             << blockResult.energy << " "
+             << referenceEnergy << " "
+             << meanEnergy << " "
+             << nWalkers << " "
+             << blockResult.variance << " "
+             << blockResult.stdError << "\n";
 
         std::cout << "Block " << std::setw(4) << j
                     << " | Block Energy = " << std::fixed << std::setprecision(8) << blockResult.energy
@@ -327,7 +327,7 @@ void DMC::run() {
                     << std::endl;
     }
 
-    // fout.close();
+    fout.close();
 
     double variance = 0.0;
     for (double energy : energyQueue) {
