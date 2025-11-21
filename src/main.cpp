@@ -41,13 +41,13 @@ int main() {
 
 
     std::vector<double> alphaStart = {0.1, 0.1};
-    std::vector<double> alphaEnd   = {3.0, 3.0};
-    std::vector<double> alphaStep  = {0.05, 0.05};
+    std::vector<double> alphaEnd   = {2.0, 1.0};
+    std::vector<double> alphaStep  = {0.01, 0.01};
 
 
-    CoulombHamiltonian hamiltonian(3, 3, masses, charges);
+    CoulombHamiltonian hamiltonian(3, 2, masses, charges);
     // HydrogenWF wf(alpha, 2, 2);
-    HeliumWF wf(alpha, 3, 3);
+    HeliumWF wf(alpha, 3, 2);
 
     double deltaTau = 0.01;
     
@@ -55,21 +55,21 @@ int main() {
     bool useMaxBranch = true;
     bool isMinimizingVariance = true;
 
-    VMC vmc(hamiltonian, wf, 1e5, 1e4);
-    wf.setParameters(vmc.optimizeParameters(alphaStart, alphaEnd, alphaStep, isMinimizingVariance));
+    // VMC vmc(hamiltonian, wf, 1e5, 1e4);
+    // wf.setParameters(vmc.optimizeParameters(alphaStart, alphaEnd, alphaStep, isMinimizingVariance));
 
-    std::cout << "Parameters: [" << wf.getParameters()[0] << ", "
-                               << wf.getParameters()[1] << "]\n";
+    // std::cout << "Parameters: [" << wf.getParameters()[0] << ", "
+    //                            << wf.getParameters()[1] << "]\n";
 
-    std::cout << "Energy: "             << vmc.result.energy             << "\n";
-    std::cout << "Variance: "           << vmc.result.variance           << "\n";
-    std::cout << "StdError: "           << vmc.result.stdError           << "\n";
-    std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
-    std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
+    // std::cout << "Energy: "             << vmc.result.energy             << "\n";
+    // std::cout << "Variance: "           << vmc.result.variance           << "\n";
+    // std::cout << "StdError: "           << vmc.result.stdError           << "\n";
+    // std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
+    // std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
 
-    // DMC dmc(hamiltonian, wf, deltaTau, 20000, useFixedNode, useMaxBranch);
+    DMC dmc(hamiltonian, wf, deltaTau, 20000, useFixedNode, useMaxBranch);
 
-    // dmc.run();
+    dmc.run();
 
     return 0;
 }

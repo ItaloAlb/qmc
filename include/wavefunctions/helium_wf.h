@@ -8,7 +8,7 @@ public:
     WaveFunction* clone() const override {
         return new HeliumWF(*this);
     }
-    
+
     double trialWaveFunction(const double* position) const override {
         double alpha = params[0];
         double beta = params[1];
