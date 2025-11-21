@@ -1,5 +1,6 @@
 // src/main.cpp
 #include "dmc.h"
+#include "vmc.h"
 #include "wavefunctions/hydrogen_wf.h"
 #include "wavefunctions/helium_wf.h"
 #include "hamiltonians/coulomb_hamiltonian.h"
@@ -31,22 +32,40 @@
 
 int main() {
     std::cout << "========================================\n";
-    std::cout << "   DMC TEST: HELIUM ATOM (Ground State)\n";
+    std::cout << "   QMC TEST: HELIUM ATOM (Ground State)\n";
     std::cout << "========================================\n";
 
-    std::vector<double> masses = {100000.0, 1.0, 1.0};
+    std::vector<double> masses = {1e12, 1.0, 1.0};
     std::vector<double> charges = {2.0, -1.0, -1.0};
     std::vector<double> alpha = {1.0, 1.0};
 
 
-    CoulombHamiltonian hamiltonian(3, 3, masses, charges);
-    // HydrogenWF wf(alpha, 2, 2);
-    HeliumWF wf(alpha, 3, 3);
+    std::vector<double> alphaStart = {0.1, 0.1};
+    std::vector<double> alphaEnd   = {1.0, 1.0};
+    std::vector<double> alphaStep  = {0.05, 0.05};
 
-    double deltaTau = 0.01;
+
+    CoulombHamiltonian hamiltonian(3, 2, masses, charges);
+    // HydrogenWF wf(alpha, 2, 2);
+    HeliumWF wf(alpha, 3, 2);
+
+    double deltaTau = 0.001;
     
-    bool useFixedNode = false;
+    bool useFixedNode = true;
     bool useMaxBranch = true;
+    bool isMinimizingVariance = true;
+
+    VMC vmc(hamiltonian, wf, 1e5, 1e4);
+    wf.setParameters(vmc.optimizeParameters(alphaStart, alphaEnd, alphaStep, isMinimizingVariance));
+
+    std::cout << "Parameters: [" << wf.getParameters()[0] << ", "
+                               << wf.getParameters()[1] << "]\n";
+
+    std::cout << "Energy: "             << vmc.result.energy             << "\n";
+    std::cout << "Variance: "           << vmc.result.variance           << "\n";
+    std::cout << "StdError: "           << vmc.result.stdError           << "\n";
+    std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
+    std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
 
     DMC dmc(hamiltonian, wf, deltaTau, 20000, useFixedNode, useMaxBranch);
 
