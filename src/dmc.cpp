@@ -286,7 +286,7 @@ void DMC::initializeWalkers() {
 void DMC::run() {
     double blockTime = deltaTau * Constants::N_STEPS_PER_BLOCK;
 
-    std::ofstream fout("bin/dmc.dat");
+    std::ofstream fout("build/bin/qmc.dat");
     std::deque<double> energyQueue;
     
     std::vector<double> blockMeanEnergies;
