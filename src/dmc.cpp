@@ -1,7 +1,9 @@
 #include "dmc.h"
 
+using namespace Utils;
+
 DMC::DMC(const Hamiltonian& hamiltonian_, 
-         const WaveFunction& wf_, 
+        WaveFunction& wf_, 
          double deltaTau_, 
          int nWalkers_, 
          bool isFixedNode_, 
@@ -218,47 +220,44 @@ void DMC::initializeWalkers() {
     #pragma omp parallel
     {
         int threadId = omp_get_thread_num();
-        auto& gen = gens[threadId];
+        
+        int seed = 1234 + threadId;
+        Utils::Metropolis sampler(seed, 1.0, nParticles, dim); 
+        
+        std::mt19937 initGen(seed); 
 
         std::vector<double> current(stride);
-        std::vector<double> proposed(stride);
-
-        auto psiFunc = [&](const double* r) { 
-            return wf.trialWaveFunction(r); 
-        };
 
         #pragma omp for
         for (int w = 0; w < nWalkers; w++) {
             
-            for (int i = 0; i < stride; i++) current[i] = initDist(gen);
+            for (int i = 0; i < stride; i++) current[i] = initDist(initGen);
             
-            double currentPsi = psiFunc(current.data());
+            double currentPsi = wf.trialWaveFunction(current.data());
             
-            double step = 1.0;
-            double targetAcc = 0.5;
+            sampler.setStepSize(1.0); 
+
             int accepted = 0;
             int adjustInterval = 100;
+            double targetAcc = 0.5;
 
             for (int j = 0; j < Constants::EQUILIBRATION_STEPS; j++) {
-                bool accept = Utils::metropolisStep(
-                    current.data(),
-                    proposed.data(),
-                    currentPsi,
-                    stride,
-                    gen,
-                    step,
-                    psiFunc
-                );
+                
+                bool accept = sampler.step(wf, current, currentPsi);
 
                 if (accept) {
-                    std::copy(proposed.begin(), proposed.end(), current.begin());
                     accepted++;
                 }
 
                 if ((j + 1) % adjustInterval == 0) {
                     double accRate = accepted / double(adjustInterval);
-                    step *= (1.0 + 0.1 * (accRate - targetAcc));
-                    if (step < Constants::MIN_METROPOLIS_STEP) step = Constants::MIN_METROPOLIS_STEP;
+                    double oldStep = sampler.getStepSize();
+                    double newStep = oldStep * (1.0 + 0.1 * (accRate - targetAcc));
+                    
+                    if (newStep < Constants::MIN_METROPOLIS_STEP) 
+                        newStep = Constants::MIN_METROPOLIS_STEP;
+                    
+                    sampler.setStepSize(newStep);
                     accepted = 0;
                 }
             }

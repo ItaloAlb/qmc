@@ -32,7 +32,7 @@ struct DMCResult {
 class DMC {
     private:
         const Hamiltonian& hamiltonian;
-        const WaveFunction& wf;
+        WaveFunction& wf;
 
         int nWalkers, nParticles, dim, stride;
         double deltaTau, referenceEnergy, instEnergy, meanEnergy;
@@ -54,7 +54,7 @@ class DMC {
 
     public: 
         DMC(const Hamiltonian& hamiltonian, 
-            const WaveFunction& wf, 
+            WaveFunction& wf, 
             double deltaTau, 
             int nWalkers = Constants::N_WALKERS_TARGET,
             bool isFixedNode = false,

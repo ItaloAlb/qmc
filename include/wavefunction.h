@@ -31,11 +31,15 @@ class WaveFunction {
 
         virtual std::vector<double> getLaplacian(const double* position) const;
 
+        std::vector<double> parameterGradient(const double* position);
+
         virtual double trialWaveFunction(const double* position) const = 0;
 
         int getNParticles() const { return nParticles; };
 
         int getDim() const { return dim; };
+
+        int getStride() const { return stride; };
 };
 
 #endif

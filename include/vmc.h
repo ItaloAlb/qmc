@@ -9,6 +9,7 @@
 
 #include "hamiltonian.h"
 #include "wavefunction.h"
+#include "utils.h"
 
 
 struct VMCResult {
@@ -20,29 +21,24 @@ struct VMCResult {
 };
 
 class VMC {
-    private:
-        const Hamiltonian& hamiltonian;
-        WaveFunction& wf;
+private:
+    const Hamiltonian& hamiltonian;
+    WaveFunction& wf;
+    Utils::Metropolis& sampler;
 
-        int nParticle, nDim, nSteps, nEquilibration, stride;
+    int nSteps;
+    int nEquilibration;
+    int stride;
 
-        std::vector<std::mt19937> gens; 
-        std::uniform_real_distribution<double> uniformDist;
+public:
+    VMCResult result;
 
-    public:
-        VMCResult result;
-        VMC(const Hamiltonian& hamiltonian, 
-            WaveFunction& wf, 
-            int nSteps, 
-            int nEquilibration);
+    VMC(const Hamiltonian& hamiltonian, 
+        WaveFunction& wf, 
+        Utils::Metropolis& sampler,
+        int nSteps, 
+        int nEquilibration);
 
-        VMCResult run(const std::vector<double>& alpha, std::mt19937& local_rng);
-
-        std::vector<double> optimizeParameters(
-            const std::vector<double>& alphaStart, 
-            const std::vector<double>& alphaEnd, 
-            const std::vector<double>& alphaStep,
-            bool isMinimizeVariance);
+    void run();
 };
-
 #endif

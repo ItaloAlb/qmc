@@ -10,6 +10,17 @@ public:
         return new MonolayerExcitonWF(*this);
     }
 
+    void setParameters(const std::vector<double>& newParams) {
+        if (newParams.size() >= 2) {
+            params[1] = newParams[0];
+            params[2] = newParams[1];
+        }
+    }
+
+    std::vector<double> getParameters() const  {
+        return { params[1], params[2] };
+    }
+
     double jastrowFactor(double r, double r2) const {
         double c1 = params[0];
         double c2 = params[1];

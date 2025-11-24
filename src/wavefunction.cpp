@@ -75,3 +75,31 @@ std::vector<double> WaveFunction::getLaplacian(const double* position) const {
 
     return laplacians;
 }
+
+std::vector<double> WaveFunction::parameterGradient(const double* position) {
+    std::vector<double> optParams = this->getParameters();
+    
+    std::vector<double> gradients(optParams.size(), 0.0);
+    
+    double eps = Constants::FINITE_DIFFERENCE_STEP; 
+
+    for (size_t i = 0; i < optParams.size(); ++i) {
+        double originalVal = optParams[i];
+        optParams[i] = originalVal + eps;
+        this->setParameters(optParams);
+        
+        double psiPlus = trialWaveFunction(position);
+
+        optParams[i] = originalVal - eps;
+        this->setParameters(optParams);
+        
+        double psiMinus = trialWaveFunction(position);
+
+        gradients[i] = (psiPlus - psiMinus) / (2.0 * eps);
+
+        optParams[i] = originalVal;
+        this->setParameters(optParams);
+    }
+
+    return gradients;
+}

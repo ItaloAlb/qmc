@@ -63,6 +63,11 @@
         "list": "cpp",
         "unordered_map": "cpp",
         "xhash": "cpp",
-        "numeric": "cpp"
+        "numeric": "cpp",
+        "cstdarg": "cpp",
+        "cwctype": "cpp",
+        "memory_resource": "cpp",
+        "string_view": "cpp",
+        "numbers": "cpp"
     }
 }

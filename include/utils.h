@@ -33,8 +33,8 @@ namespace Utils {
                 std::uniform_real_distribution<double> dist(-stepSize, stepSize);
                 std::uniform_real_distribution<double> uniform(0.0, 1.0);
 
-                for (double& pos : positionBuffer) {
-                    pos += dist(rng);
+                for (double& position : positionBuffer) {
+                    position += dist(rng);
                 }
 
                 double proposedPsi = wf.trialWaveFunction(positionBuffer.data());
@@ -42,17 +42,32 @@ namespace Utils {
                 double w = (proposedPsi * proposedPsi) / (currentPsi * currentPsi);
 
                 if (w >= uniform(rng)) {
-                    currentR = positionBuffer; // Atualiza a posição real
-                    currentPsi = proposedPsi;  // Atualiza o valor de Psi
+                    currentR = positionBuffer;
+                    currentPsi = proposedPsi;
                     return true;
                 }
                 return false;
             }
             
-            // Getter para o tamanho do passo (útil para ajustar aceitação ~50%)
             double getStepSize() const { return stepSize; }
             void setStepSize(double s) { stepSize = s; }
         };
+
+    inline double dot(const std::vector<double>& a, const std::vector<double>& b) {
+        double sum = 0.0;
+        for (size_t i = 0; i < a.size(); ++i) sum += a[i] * b[i];
+        return sum;
+    }
+
+    inline std::vector<double> matVecMul(const std::vector<std::vector<double>>& M, const std::vector<double>& v) {
+        std::vector<double> res(v.size(), 0.0);
+        for (size_t i = 0; i < M.size(); ++i) {
+            for (size_t j = 0; j < M[i].size(); ++j) {
+                res[i] += M[i][j] * v[j];
+            }
+        }
+        return res;
+    }
 
     inline double stvh0(double x) {
         double s = 1.0;
