@@ -122,7 +122,7 @@ int main() {
     std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
     std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
 
-    DMC dmc(hamiltonian, wf, deltaTau, 5000, useFixedNode, useMaxBranch);
+    DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
 
     dmc.run();
 

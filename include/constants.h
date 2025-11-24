@@ -30,6 +30,11 @@ namespace Constants {
     const double MIN_DISTANCE = 1e-8;
     const double FINITE_DIFFERENCE_STEP = 1e-4;
     const double FINITE_DIFFERENCE_STEP_2 = FINITE_DIFFERENCE_STEP * FINITE_DIFFERENCE_STEP;
+
+    const double RYDBERG_FOR_HARTREE = 2.0;
+    const double RYDBERG = 13605.7; // in meV
+    const double HARTREE = RYDBERG * RYDBERG_FOR_HARTREE; // in meV
+    const double a0 = 0.5292; // in Angs
 }
 
 #endif
