@@ -23,9 +23,9 @@ class WaveFunction {
 
         std::vector<double> getDrift(const double* position) const;
 
-        void setParameters(const std::vector<double>& newParams);
+        virtual void setParameters(const std::vector<double>& newParams);
         
-        const std::vector<double>& getParameters() const;
+        virtual std::vector<double> getParameters() const;
 
         virtual std::vector<double> getDrift(const double* position, const double* masses) const;
 

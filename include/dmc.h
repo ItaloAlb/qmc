@@ -6,6 +6,7 @@
 #include <omp.h>
 #include <deque>
 #include <numeric>
+#include <algorithm>
 
 #include <iostream>
 #include <fstream>
@@ -21,6 +22,7 @@ struct BlockResult {
     double energy;
     double variance;
     double stdError;
+    double acceptanceRatio;
 };
 
 struct DMCResult {
@@ -34,8 +36,8 @@ class DMC {
         const Hamiltonian& hamiltonian;
         WaveFunction& wf;
 
-        int nWalkers, nParticles, dim, stride;
-        double deltaTau, referenceEnergy, instEnergy, meanEnergy;
+        int nWalkers, nParticles, dim, stride, blockTotalMoves, blockAcceptedMoves;
+        double deltaTau, invDeltaTau, referenceEnergy, instEnergy, meanEnergy;
         bool isFixedNode, isMaxBranch;
 
         std::vector<std::mt19937> gens;

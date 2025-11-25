@@ -11,13 +11,13 @@ namespace Constants {
 
     //DMC
     const int MAX_N_WALKERS = 200000;
-    const int N_WALKERS_TARGET = 10000;
+    const int N_WALKERS_TARGET = 5000;
     const int MAX_BRANCH_FACTOR = 3;
     const double MIN_POPULATION_RATIO = 1e-4;
 
-    const int N_BLOCK_STEPS = 10000;
-    const int N_STEPS_PER_BLOCK = 100;
-    const int RUNNING_AVERAGE_WINDOW = 500;
+    const int N_BLOCK_STEPS = 300;
+    const int N_STEPS_PER_BLOCK = 1000;
+    const int RUNNING_AVERAGE_WINDOW = 100;
 
 
     //VMC

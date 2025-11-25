@@ -33,7 +33,7 @@ void WaveFunction::setParameters(const std::vector<double>& newParams) {
     this->params = newParams;
 }
 
-const std::vector<double>& WaveFunction::getParameters() const {
+std::vector<double> WaveFunction::getParameters() const {
     return this->params;
 }
 

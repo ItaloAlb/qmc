@@ -7,6 +7,7 @@
 #include "wavefunctions/hydrogen_wf.h"
 #include "wavefunctions/helium_wf.h"
 #include "wavefunctions/monolayer_exciton_wf.h"
+#include "wavefunctions/monolayer_trion_wf.h"
 
 #include "hamiltonians/coulomb_hamiltonian.h"
 #include "hamiltonians/efficient_rk_hamiltonian.h"
@@ -92,39 +93,45 @@
 
 int main() {
     std::cout << "==============\n";
-    std::cout << "   MoS2 (X)   \n";
+    std::cout << "   MoSe2 (X^-)   \n";
     std::cout << "==============\n";
 
-    // --- 1. Configuração Física ---
-    double X2D = 7.112;
+    double X2D =  8.461 / Constants::a0;
     double rho0 = 2 * Constants::PI * X2D;
 
-    std::vector<double> masses = {0.54, 0.47};
-    std::vector<double> charges = {+1.0, -1.0};
+    std::vector<double> masses = {0.55,  0.55, 0.59};
+    std::vector<double> charges = {-1.0, -1.0, 1.0};
 
-    double c1 = masses[0] * masses[1] / 2 / (masses[0] + masses[1]);
-    std::vector<double> alpha = {c1, 1.0, 1.0}; 
+    double c1 = masses[0] * masses[2] / 2 / (masses[0] + masses[2]);
+    double c4 = - masses[0] / 4;
+    std::vector<double> alpha = {c1, 0.2, 0.2, c4, 0.2};
 
-    EfficientRKHamiltonian hamiltonian(2, 2, masses, charges, rho0);
-    MonolayerExcitonWF wf(alpha, 2, 2);
+    std::vector<double> params = {-1.59201, -1.61131, -1.6036};
+
+    int nParticles = 3;
+    int nDim = 2;
+
+    EfficientRKHamiltonian hamiltonian(nParticles, nDim, masses, charges, rho0);
+    MonolayerTrionWF wf(alpha, nParticles, nDim);
+
+    wf.setParameters(params);
 
     std::cout << "\n--- Iniciando Otimizacao BFGS ---\n";
 
     std::random_device rd;
     unsigned int randomSeed = rd();
     
-    Metropolis optimizerSampler(randomSeed, 1.0, 2, 2); 
+    Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
 
-    // JastrowBFGSOptimizer optEnergy(0.001, 50, 100000, false); // false = Energia
-    // optEnergy.optimize(wf, hamiltonian, optimizerSampler);
-
-    JastrowBFGSOptimizer optVariance(0.0001, 50, 100000, false); // true = Variança
+    JastrowBFGSOptimizer optVariance(0.02, 100, 100000, false);
     optVariance.optimize(wf, hamiltonian, optimizerSampler);
 
 
-    std::cout << "Parametros Otimizados: [" 
-              << wf.getParameters()[0] << ", "
-              << wf.getParameters()[1] << "]\n\n";
+    std::vector<double> optParams = wf.getParameters();
+    std::cout << "Parametros Otimizados (log): [" 
+              << optParams[0] << ", "
+              << optParams[1] << ", "
+              << optParams[2] << "]\n\n";
 
 
 

@@ -16,8 +16,11 @@ DMC::DMC(const Hamiltonian& hamiltonian_,
       isMaxBranch(isMaxBranch_),
       referenceEnergy(0.0),
       instEnergy(0.0),
-      meanEnergy(0.0)
+      meanEnergy(0.0),
+      blockTotalMoves(0),
+      blockAcceptedMoves(0)
 {
+    this->invDeltaTau = 1 / deltaTau;
     this->stride = hamiltonian.getStride();
     this->nParticles = hamiltonian.getNParticles();
     this->dim = hamiltonian.getDim();
@@ -64,7 +67,7 @@ void DMC::timeStep(){
             // Propose a new position for the walker using a random walk step and drift term
             for(int j = 0; j < stride; j++){
                 position[j] = positions[i * stride + j];
-                drift[j] = drifts[i * stride + j];
+                drift[j] = std::clamp(drifts[i * stride + j], - invDeltaTau, invDeltaTau);
 
                 double chi = dist(gen) * std::sqrt(deltaTau / hamiltonian.getMasses()[j / dim]); // Random number from a normal distribution (diffusion term)
                 // Update the position component: newPosition = oldPosition + diffusion_term + drift_term * time_step
@@ -94,6 +97,9 @@ void DMC::timeStep(){
             if (!crossedNodalSurface) {
                 // Calculate the drift at the new proposed position
                 newDrift = wf.getDrift(&newPosition[0], &hamiltonian.getMasses()[0]);
+                for(auto& d : newDrift) {
+                    d = std::clamp(d, -invDeltaTau, invDeltaTau);
+                }
                 // Calculate the forward Green's function for the drift term
                 double forwardDriftGreenFunction = driftGreenFunction(&newPosition[0], &positions[i * stride], &drifts[i * stride]);
                 // Calculate the backward Green's function for the drift term
@@ -107,6 +113,8 @@ void DMC::timeStep(){
                 // Accept or reject the proposed move based on the acceptance probability
                 if (uniform(gen) < acceptanceProbability) {
                     // If accepted, update the walker's position, drift, and local energy
+                    blockAcceptedMoves++;
+                    
                     for (int j = 0; j < stride; j++) {
                         position[j] = newPosition[j];
                         positions[i * stride + j] = newPosition[j];
@@ -146,6 +154,8 @@ void DMC::timeStep(){
         }
     }
 
+    blockTotalMoves += nWalkers;
+
     // Update the instantaneous energy of the ensemble
     instEnergy = newNWalkers > 0 ? ensembleEnergy / newNWalkers: 0.0;
     // Replace the old generation of walkers with the new generation
@@ -160,6 +170,9 @@ BlockResult DMC::blockStep(int nSteps) {
     double mean = 0.0;
     double mean2 = 0.0;
 
+    blockTotalMoves = 0;
+    blockAcceptedMoves = 0;
+
     double delta, delta2;
     for (int n = 1; n < nSteps + 1; ++n) {
         timeStep();
@@ -172,6 +185,12 @@ BlockResult DMC::blockStep(int nSteps) {
 
     BlockResult result;
     result.energy = mean;
+
+    if (blockTotalMoves > 0) {
+        result.acceptanceRatio = static_cast<double>(blockAcceptedMoves) / static_cast<double>(blockTotalMoves);
+    } else {
+        result.acceptanceRatio = 0.0;
+    }
 
     if (nSteps > 1) {
         result.variance = mean2 / (nSteps - 1); 
@@ -220,8 +239,11 @@ void DMC::initializeWalkers() {
     #pragma omp parallel
     {
         int threadId = omp_get_thread_num();
+
+        std::random_device rd;
         
-        int seed = 1234 + threadId;
+        unsigned int seed = rd() + threadId;
+
         Utils::Metropolis sampler(seed, 1.0, nParticles, dim); 
         
         std::mt19937 initGen(seed); 
@@ -317,7 +339,7 @@ void DMC::run() {
                     << " | Mean Energy = " << std::fixed << std::setprecision(8) << meanEnergy
                     << " | Population = " << std::fixed << nWalkers
                     << " | Variance = " << std::fixed << std::setprecision(8) << blockResult.variance
-                    << " | Std Error = " << std::fixed << std::setprecision(8) << blockResult.stdError
+                    << " | Acceptance Ratio = " << std::fixed << std::setprecision(8) << blockResult.acceptanceRatio
                     << std::endl;
     }
 
