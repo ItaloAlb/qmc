@@ -93,13 +93,13 @@
 
 int main() {
     std::cout << "==============\n";
-    std::cout << "   MoS2 (X^-) \n";
+    std::cout << "   WS2 (X^-) \n";
     std::cout << "==============\n";
 
-    double X2D =  7.112 / Constants::a0;
+    double X2D =  6.393 / Constants::a0;
     double rho0 = 2 * Constants::PI * X2D;
 
-    std::vector<double> masses = {0.47 ,  0.47 , 0.54};
+    std::vector<double> masses = {0.32 ,  0.32 , 0.35};
     std::vector<double> charges = {-1.0, -1.0, 1.0};
 
     double c1 = masses[0] * masses[2] / 2 / (masses[0] + masses[2]);
@@ -123,7 +123,7 @@ int main() {
     
     Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
 
-    JastrowBFGSOptimizer optVariance(0.02, 100, 100000, false);
+    JastrowBFGSOptimizer optVariance(0.01, 100, 100000, false);
     optVariance.optimize(wf, hamiltonian, optimizerSampler);
 
 

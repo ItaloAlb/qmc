@@ -1,12 +1,12 @@
 #include "wavefunction.h"
 
-class MonolayerTrionWF : public WaveFunction {
+class MonolayerBiexcitonWF : public WaveFunction {
 public:
-    MonolayerTrionWF(const std::vector<double>& params, int nParticles, int dim) 
+    MonolayerBiexcitonWF(const std::vector<double>& params, int nParticles, int dim) 
         : WaveFunction(params, nParticles, dim) {}
 
     WaveFunction* clone() const override {
-        return new MonolayerTrionWF(*this);
+        return new MonolayerBiexcitonWF(*this);
     }
 
 void setParameters(const std::vector<double>& newParams) override {
@@ -49,24 +49,39 @@ void setParameters(const std::vector<double>& newParams) override {
     }
     
     double trialWaveFunction(const double* position) const override {
-        // [xe1, ye1, xe2, ye2, xh, yh]
+        // [xe1, ye1, xe2, ye2, xh1, yh1, xh2, yh2]
         int idx_e1 = 0;
         int idx_e2 = 1 * dim;
-        int idx_h  = 2 * dim;
+        int idx_h1  = 2 * dim;
+        int idx_h2 = 3 * dim;
 
-        double r2_e1h = 0.0;
+        double r2_e1h1 = 0.0;
         for(int k = 0; k < dim; k++) {
-            double d = position[idx_e1 + k] - position[idx_h + k];
-            r2_e1h += d * d;
+            double d = position[idx_e1 + k] - position[idx_h1 + k];
+            r2_e1h1 += d * d;
         }
-        double r_e1h = std::sqrt(r2_e1h);
+        double r_e1h1 = std::sqrt(r2_e1h1);
 
-        double r2_e2h = 0.0;
+        double r2_e1h2 = 0.0;
         for(int k = 0; k < dim; k++) {
-            double d = position[idx_e2 + k] - position[idx_h + k];
-            r2_e2h += d * d;
+            double d = position[idx_e1 + k] - position[idx_h2 + k];
+            r2_e1h2 += d * d;
         }
-        double r_e2h = std::sqrt(r2_e2h);
+        double r_e1h2 = std::sqrt(r2_e1h2);
+
+        double r2_e2h1 = 0.0;
+        for(int k = 0; k < dim; k++) {
+            double d = position[idx_e2 + k] - position[idx_h1 + k];
+            r2_e2h1 += d * d;
+        }
+        double r_e2h1 = std::sqrt(r2_e2h1);
+
+        double r2_e2h2 = 0.0;
+        for(int k = 0; k < dim; k++) {
+            double d = position[idx_e2 + k] - position[idx_h2 + k];
+            r2_e2h2 += d * d;
+        }
+        double r_e2h2 = std::sqrt(r2_e2h2);
 
         double r2_ee = 0.0;
         for(int k = 0; k < dim; k++) {
@@ -75,6 +90,18 @@ void setParameters(const std::vector<double>& newParams) override {
         }
         double r_ee = std::sqrt(r2_ee);
 
-        return jastrowEH(r_e1h, r2_e1h) * jastrowEH(r_e2h, r2_e2h) * jastrowEE(r_ee,  r2_ee);
+        double r2_hh = 0.0;
+        for(int k = 0; k < dim; k++) {
+            double d = position[idx_h1 + k] - position[idx_h2 + k];
+            r2_hh += d * d;
+        }
+        double r_hh = std::sqrt(r2_hh);
+
+        return jastrowEH(r_e1h1, r2_e1h1) * 
+                jastrowEH(r_e1h2, r2_e1h2) * 
+                jastrowEH(r_e2h1, r2_e2h1) * 
+                jastrowEH(r_e2h2, r2_e2h2) * 
+                jastrowEE(r_ee,  r2_ee) * 
+                jastrowEE(r_hh,  r2_hh);
     }
 };
