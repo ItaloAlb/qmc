@@ -93,20 +93,20 @@
 
 int main() {
     std::cout << "==============\n";
-    std::cout << "   MoSe2 (X^-)   \n";
+    std::cout << "   MoS2 (X^-) \n";
     std::cout << "==============\n";
 
-    double X2D =  8.461 / Constants::a0;
+    double X2D =  7.112 / Constants::a0;
     double rho0 = 2 * Constants::PI * X2D;
 
-    std::vector<double> masses = {0.55,  0.55, 0.59};
+    std::vector<double> masses = {0.47 ,  0.47 , 0.54};
     std::vector<double> charges = {-1.0, -1.0, 1.0};
 
     double c1 = masses[0] * masses[2] / 2 / (masses[0] + masses[2]);
     double c4 = - masses[0] / 4;
     std::vector<double> alpha = {c1, 0.2, 0.2, c4, 0.2};
 
-    std::vector<double> params = {-1.59201, -1.61131, -1.6036};
+    // std::vector<double> params = {-1.59201, -1.61131, -1.6036};
 
     int nParticles = 3;
     int nDim = 2;
@@ -114,7 +114,7 @@ int main() {
     EfficientRKHamiltonian hamiltonian(nParticles, nDim, masses, charges, rho0);
     MonolayerTrionWF wf(alpha, nParticles, nDim);
 
-    wf.setParameters(params);
+    // wf.setParameters(params);
 
     std::cout << "\n--- Iniciando Otimizacao BFGS ---\n";
 
