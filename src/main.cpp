@@ -90,7 +90,7 @@ int main() {
 
     std::cout << "--- Rodando DMC ---\n";
     double deltaTau = 0.05;
-    bool useFixedNode = true;
+    bool useFixedNode = false;
     bool useMaxBranch = true;
 
     DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
