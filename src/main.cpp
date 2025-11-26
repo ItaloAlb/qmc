@@ -114,7 +114,7 @@ int main() {
     EfficientRKHamiltonian hamiltonian(nParticles, nDim, masses, charges, rho0);
     MonolayerTrionWF wf(alpha, nParticles, nDim);
 
-    wf.setParameters(params);
+    // wf.setParameters(params);
 
     std::cout << "\n--- Iniciando Otimizacao BFGS ---\n";
 
