@@ -66,8 +66,8 @@ int main() {
     optVariance.optimize(wf, hamiltonian, optimizerSampler);
 
 
-    std::vector<double> optParams = wf.getParameters();
-    std::cout << "Parametros Otimizados (log): [" 
+    optParams = wf.getParameters();
+    std::cout << "Parametros Otimizados: [" 
               << optParams[0] << ", "
               << optParams[1] << ", "
               << optParams[2] << ", "
@@ -89,7 +89,7 @@ int main() {
 
 
     std::cout << "--- Rodando DMC ---\n";
-    double deltaTau = 0.01;
+    double deltaTau = 0.1;
     bool useFixedNode = true;
     bool useMaxBranch = true;
 
