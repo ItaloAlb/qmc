@@ -8,43 +8,22 @@ using namespace std::complex_literals;
 
 class TwistedHeterobilayerHamiltonian : public Hamiltonian {
     private:
-        const double Vh1 = -107.1 / HARTREE;
-        const double Vh2 = -(107.1 - 16.9) / HARTREE; 
-        const double Ve1 = -17.3 / HARTREE;
-        const double Ve2 = -(17.3 - 3.5) / HARTREE;
-        const double d0 = 6.387 / a0;
-        const double d1 = 0.544 / a0;
-        const double d2 = 0.042 / a0;
-
-        const double a10 = 3.282;
-        const double a20 = 3.160;
-        const double delta = std::abs(a10 - a20) / a10;
-
-        double theta;
-        double moireLength;
-        double absK;
-        double Efield;
+        double eField;
         double eps1, eps2;
-
-        double K1x;
-        double K1y;
-        double K2x;
-        double K2y;
-        double K3x;
-        double K3y;
-
-        const double HALF_PHASE = 2.0 * PI / 3.0;
-        const double PHASE = 4.0 * PI / 3.0;
-
         double rho0;
         double invrho0;
+
+        MoireSystem moire;
     public:
         TwistedHeterobilayerHamiltonian(int nParticles, int dim,
                         const std::vector<double>& masses,
                         const std::vector<double>& charges,
-                        double theta_, double Efield_, double rho0_)
+                        MoireSystem moire_, double rho0_, double eps1_, double eps2_)
             : Hamiltonian(nParticles, dim, masses, charges),
-            rho0(rho0_), theta(theta_), Efield(Efield_) {
+            rho0(rho0_), 
+            moire(moire_),
+            eps1(eps1_),
+            eps2(eps2_) {
                 invrho0 = 1.0 / rho0;
             }
 
@@ -54,43 +33,43 @@ class TwistedHeterobilayerHamiltonian : public Hamiltonian {
                 double xh = position[2];
                 double yh = position[3];
 
-                double K1_dot_re = K1x * xe + K1y * ye;
-                double K2_dot_re = K2x * xe + K2y * ye;
-                double K3_dot_re = K3x * xe + K3y * ye;
+                double K1_dot_re = moire.k1x * xe + moire.k1y * ye;
+                double K2_dot_re = moire.k2x * xe + moire.k2y * ye;
+                double K3_dot_re = moire.k3x * xe + moire.k3y * ye;
 
                 std::complex<double> f1e = (std::exp(-1i * K1_dot_re) + 
                                             std::exp(-1i * K2_dot_re) + 
                                             std::exp(-1i * K3_dot_re)) / 3.0;
 
                 std::complex<double> f2e = (std::exp(-1i * K1_dot_re) + 
-                                            std::exp(-1i * (K2_dot_re + HALF_PHASE)) + 
-                                            std::exp(-1i * (K3_dot_re + PHASE))) / 3.0;
+                                            std::exp(-1i * (K2_dot_re + moire.HALF_PHASE)) + 
+                                            std::exp(-1i * (K3_dot_re + moire.PHASE))) / 3.0;
 
                 double f1eSquared = std::norm(f1e);
                 double f2eSquared = std::norm(f2e);
 
-                double de = d0 + d1 * f1eSquared + d2 * f2eSquared;
+                double de = moire.d0 + moire.d1 * f1eSquared + moire.d2 * f2eSquared;
 
-                double Ve = Ve1 * f1eSquared + Ve2 * f2eSquared + Efield * de * 0.5;
+                double Ve = moire.Ve1 * f1eSquared + moire.Ve2 * f2eSquared + moire.eField * de * 0.5;
 
-                double K1_dot_rh = K1x * xh + K1y * yh;
-                double K2_dot_rh = K2x * xh + K2y * yh;
-                double K3_dot_rh = K3x * xh + K3y * yh;
+                double K1_dot_rh = moire.k1x * xh + moire.k1y * yh;
+                double K2_dot_rh = moire.k2x * xh + moire.k2y * yh;
+                double K3_dot_rh = moire.k3x * xh + moire.k3y * yh;
 
                     std::complex<double> f1h = (std::exp(-1i * K1_dot_rh) + 
                                                 std::exp(-1i * K2_dot_rh) + 
                                                 std::exp(-1i * K3_dot_rh)) / 3.0;
 
                 std::complex<double> f2h = (std::exp(-1i * K1_dot_rh) + 
-                                            std::exp(-1i * (K2_dot_rh + HALF_PHASE)) + 
-                                            std::exp(-1i * (K3_dot_rh + PHASE))) / 3.0;
+                                            std::exp(-1i * (K2_dot_rh + moire.HALF_PHASE)) + 
+                                            std::exp(-1i * (K3_dot_rh + moire.PHASE))) / 3.0;
 
                 double f1hSquared = std::norm(f1h);
                 double f2hSquared = std::norm(f2h);
 
-                double dh = d0 + d1 * f1hSquared + d2 * f2hSquared;
+                double dh = moire.d0 + moire.d1 * f1hSquared + moire.d2 * f2hSquared;
 
-                double Vh = Vh1 * f1hSquared + Vh2 * f2hSquared + Efield * dh * 0.5;
+                double Vh = moire.Vh1 * f1hSquared + moire.Vh2 * f2hSquared + moire.eField * dh * 0.5;
                 
                 return Ve + Vh;
 

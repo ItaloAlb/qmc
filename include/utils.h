@@ -11,6 +11,46 @@
 
 using namespace Constants;
 
+struct MoireSystem {
+    const double Vh1 = -107.1 / HARTREE;
+    const double Vh2 = -(107.1 - 16.9) / HARTREE; 
+    const double Ve1 = -17.3 / HARTREE;
+    const double Ve2 = -(17.3 - 3.5) / HARTREE;
+
+    const double d0 = 6.387 / a0;
+    const double d1 = 0.544 / a0;
+    const double d2 = 0.042 / a0;
+
+    const double a10 = 3.282;
+    const double a20 = 3.160;
+    const double delta = std::abs(a10 - a20) / a10;
+
+
+    const double HALF_PHASE = 2.0 * PI / 3.0;
+    const double PHASE = 4.0 * PI / 3.0;
+
+    double theta;
+    double eField;
+    
+    double moireLength;
+    double absK;
+    double k1x, k1y, k2x, k2y, k3x, k3y;
+    
+    MoireSystem(double theta_, double eField_) 
+        : theta(theta_), eField(eField_)
+    {
+        moireLength = a10 / std::sqrt(theta*theta + delta*delta) / a0;
+        absK = (4.0 * PI) / (3.0 * moireLength);
+
+        k1x = absK * 1.0;
+        k1y = absK * 0.0;
+        k2x = absK * (-0.5);
+        k2y = absK * (std::sqrt(3.0) / 2.0);
+        k3x = absK * (-0.5);
+        k3y = absK * (-std::sqrt(3.0) / 2.0);
+    }
+};
+
 
 namespace Utils {
 
