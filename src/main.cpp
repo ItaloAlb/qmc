@@ -93,20 +93,20 @@
 
 int main() {
     std::cout << "==============\n";
-    std::cout << "   MoSe2 (X^-)   \n";
+    std::cout << "   WS2 (X^-)   \n";
     std::cout << "==============\n";
 
-    double X2D =  8.461 / Constants::a0;
+    double X2D =  6.393 / Constants::a0;
     double rho0 = 2 * Constants::PI * X2D;
 
-    std::vector<double> masses = {0.55,  0.55, 0.59};
+    std::vector<double> masses = {0.32 ,  0.32 , 0.35};
     std::vector<double> charges = {-1.0, -1.0, 1.0};
 
     double c1 = masses[0] * masses[2] / 2 / (masses[0] + masses[2]);
     double c4 = - masses[0] / 4;
-    std::vector<double> alpha = {c1, 0.2, 0.2, c4, 0.2};
+    std::vector<double> alpha = {c1, 0.1, 0.1, c4, 0.1};
 
-    std::vector<double> params = {-1.59201, -1.61131, -1.6036};
+    std::vector<double> params = {-2.07552, -3.0889, -2.50812};
 
     int nParticles = 3;
     int nDim = 2;
@@ -123,7 +123,7 @@ int main() {
     
     Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
 
-    JastrowBFGSOptimizer optVariance(0.02, 100, 100000, false);
+    JastrowBFGSOptimizer optVariance(0.1, 50, 1e5);
     optVariance.optimize(wf, hamiltonian, optimizerSampler);
 
 
@@ -137,7 +137,7 @@ int main() {
 
     std::cout << "--- Rodando VMC de Producao ---\n";
     
-    VMC vmc(hamiltonian, wf, optimizerSampler, 1e5, 1e4);
+    VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
     vmc.run();
 
     std::cout << "Energy: "             << vmc.result.energy             << "\n";

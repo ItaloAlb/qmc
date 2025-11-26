@@ -23,7 +23,6 @@ class JastrowBFGSOptimizer : public Optimizer {
         double learningRate;
         int maxEpochs;
         int samplesPerEpoch;
-        bool minimizeVariance;
 
         
         std::pair<double, std::vector<double>> computeGradients(
@@ -68,37 +67,17 @@ class JastrowBFGSOptimizer : public Optimizer {
 
         std::vector<double> finalGrad(nParams);
 
-        if (!minimizeVariance) {
-
-            for (int i = 0; i < nParams; ++i) {
+        for (int i = 0; i < nParams; ++i) {
                 double avgO = sumO[i] / samplesPerEpoch;
                 double avgEO = sumEO[i] / samplesPerEpoch;
                 finalGrad[i] = 2.0 * (avgEO - (avgE * avgO));
             }
             return {avgE, finalGrad};
-
-        } else {
-            
-            for (int i = 0; i < nParams; ++i) {
-                double avgO = sumO[i] / samplesPerEpoch;
-                double avgEO = sumEO[i] / samplesPerEpoch;
-                double avgE2O = sumE2O[i] / samplesPerEpoch;
-
-                // Derivada de <E> (term1) e Derivada de <E^2> (term2)
-                double d_AvgE = 2.0 * (avgEO - avgE * avgO);
-                double d_AvgE2 = 2.0 * (avgE2O - avgE2 * avgO);
-
-                // Regra da cadeia para sigma^2 = <E^2> - <E>^2
-                // d(sigma^2) = d(<E^2>) - 2*<E>*d(<E>)
-                finalGrad[i] = d_AvgE2 - 2.0 * avgE * d_AvgE;
-            }
-            return {variance, finalGrad}; // Retorna Variança como custo
-        }
     }
 
     public:
-        JastrowBFGSOptimizer(double lr, int epochs, int samples, bool minVar = false)
-        : learningRate(lr), maxEpochs(epochs), samplesPerEpoch(samples), minimizeVariance(minVar) {}
+        JastrowBFGSOptimizer(double lr, int epochs, int samples)
+        : learningRate(lr), maxEpochs(epochs), samplesPerEpoch(samples) {}
 
         void optimize(WaveFunction& wf, Hamiltonian& ham, Metropolis& sampler) override {
             std::vector<double> currentParams = wf.getParameters();
