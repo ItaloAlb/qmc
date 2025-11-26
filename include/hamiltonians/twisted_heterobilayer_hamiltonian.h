@@ -13,12 +13,12 @@ class TwistedHeterobilayerHamiltonian : public Hamiltonian {
         double rho0;
         double invrho0;
 
-        MoireSystem moire;
+        TwistedBilayerSystem moire;
     public:
         TwistedHeterobilayerHamiltonian(int nParticles, int dim,
                         const std::vector<double>& masses,
                         const std::vector<double>& charges,
-                        MoireSystem moire_, double rho0_, double eps1_, double eps2_)
+                        TwistedBilayerSystem moire_, double rho0_, double eps1_, double eps2_)
             : Hamiltonian(nParticles, dim, masses, charges),
             rho0(rho0_), 
             moire(moire_),
@@ -82,7 +82,7 @@ class TwistedHeterobilayerHamiltonian : public Hamiltonian {
                 double dist = position[k] - position[k + dim];
                 r2 += dist * dist;
             }
-            double r = std::sqrt(r2);
+            double r = std::sqrt(r2 + moire.thicknessSquared);
             double r_times_inv_rho0 = r * invrho0;
             
             return - PI / (eps1 + eps2) * invrho0 * (stvh0(r_times_inv_rho0) - jy0b(r_times_inv_rho0));

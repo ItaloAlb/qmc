@@ -11,7 +11,7 @@
 
 using namespace Constants;
 
-struct MoireSystem {
+struct TwistedBilayerSystem {
     const double Vh1 = -107.1 / HARTREE;
     const double Vh2 = -(107.1 - 16.9) / HARTREE; 
     const double Ve1 = -17.3 / HARTREE;
@@ -31,16 +31,19 @@ struct MoireSystem {
 
     double theta;
     double eField;
+    double thickness;
+    double thicknessSquared;
     
     double moireLength;
     double absK;
     double k1x, k1y, k2x, k2y, k3x, k3y;
     
-    MoireSystem(double theta_, double eField_) 
-        : theta(theta_), eField(eField_)
+    TwistedBilayerSystem(double theta_, double eField_, double thickness_) 
+        : theta(theta_), eField(eField_), thickness(thickness_)
     {
         moireLength = a10 / std::sqrt(theta*theta + delta*delta) / a0;
         absK = (4.0 * PI) / (3.0 * moireLength);
+        thicknessSquared = thickness_ * thickness_;
 
         k1x = absK * 1.0;
         k1y = absK * 0.0;

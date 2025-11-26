@@ -6,9 +6,9 @@ using namespace std::complex_literals;
 
 class TwistedBilayerExcitonWF : public WaveFunction {
 private:
-    MoireSystem moire;
+    TwistedBilayerSystem moire;
 public:
-    TwistedBilayerExcitonWF(const std::vector<double>& params, int nParticles, int dim, MoireSystem moire_) 
+    TwistedBilayerExcitonWF(const std::vector<double>& params, int nParticles, int dim, TwistedBilayerSystem moire_) 
         : WaveFunction(params, nParticles, dim), moire(moire_) {}
 
     WaveFunction* clone() const override {
@@ -118,7 +118,7 @@ void setParameters(const std::vector<double>& newParams) override {
             double d = position[idx_e + k] - position[idx_h + k];
             r2 += d * d;
         }
-        double r = std::sqrt(r2);
+        double r = std::sqrt(r2 + moire.thicknessSquared);
 
         return jastrowEH(r, r2) * (1 - variationalPotential(position));
     }

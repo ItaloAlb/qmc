@@ -29,7 +29,7 @@ int main() {
     double theta = 0.5;
     double eField = 0.0;
 
-    MoireSystem moire(theta, eField);
+    TwistedBilayerSystem moire(theta, eField, thickness);
 
     // double X2D = 6.393 / Constants::a0;
     double rho0 = alpha * thickness * eps / (eps1 + eps2);
@@ -89,7 +89,7 @@ int main() {
 
 
     std::cout << "--- Rodando DMC ---\n";
-    double deltaTau = 0.1;
+    double deltaTau = 0.05;
     bool useFixedNode = true;
     bool useMaxBranch = true;
 
