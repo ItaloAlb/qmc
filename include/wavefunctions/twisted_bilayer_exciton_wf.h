@@ -113,12 +113,12 @@ void setParameters(const std::vector<double>& newParams) override {
         int idx_e = 0;
         int idx_h = 1 * dim;
 
-        double r2 = 0.0;
+        double r2 = moire.thicknessSquared;
         for(int k = 0; k < dim; k++) {
             double d = position[idx_e + k] - position[idx_h + k];
             r2 += d * d;
         }
-        double r = std::sqrt(r2 + moire.thicknessSquared);
+        double r = std::sqrt(r2);
 
         return jastrowEH(r, r2) * (1 - variationalPotential(position));
     }
