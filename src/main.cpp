@@ -30,8 +30,7 @@ void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonia
     double delta_x = size_x / nx;
     double delta_y = size_y / ny;
     
-    std::vector<double> POTE(N);
-    std::vector<double> POTH(N);
+    std::vector<double> POTOTAL(N);
     std::vector<double> x_coords(N);
     std::vector<double> y_coords(N);
     
@@ -49,31 +48,11 @@ void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonia
             
             // Criar vetor position: [xe, ye, xh, yh]
             // Avaliar potencial com elétron e buraco na mesma posição
-            // double position[4] = {x, y, x, y};
+            double position[4] = {x, y, x, y};
             
-            // Calcular Ve e Vh separadamente
-            double K1_dot_r = moire.k1x * x + moire.k1y * y;
-            double K2_dot_r = moire.k2x * x + moire.k2y * y;
-            double K3_dot_r = moire.k3x * x + moire.k3y * y;
+            // Usar a função do hamiltoniano (retorna Ve + Vh)
+            POTOTAL[l] = hamiltonian.getTMDMoirePotential(position);
             
-            std::complex<double> f1 = (std::exp(-1i * K1_dot_r) + 
-                                       std::exp(-1i * K2_dot_r) + 
-                                       std::exp(-1i * K3_dot_r)) / 3.0;
-            
-            std::complex<double> f2 = (std::exp(-1i * K1_dot_r) + 
-                                       std::exp(-1i * (K2_dot_r + moire.HALF_PHASE)) + 
-                                       std::exp(-1i * (K3_dot_r + moire.PHASE))) / 3.0;
-            
-            double f1Squared = std::norm(f1);
-            double f2Squared = std::norm(f2);
-            
-            double d = moire.d0 + moire.d1 * f1Squared + moire.d2 * f2Squared;
-            
-            double Ve = moire.Ve1 * f1Squared + moire.Ve2 * f2Squared + moire.eField * d * 0.5;
-            double Vh = moire.Vh1 * f1Squared + moire.Vh2 * f2Squared + moire.eField * d * 0.5;
-            
-            POTE[l] = Ve;
-            POTH[l] = Vh;
             x_coords[l] = x;
             y_coords[l] = y;
             l++;
@@ -86,33 +65,30 @@ void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonia
     }
     
     // Normalizar (subtrair mínimo como no Python)
-    double min_POTE = *std::min_element(POTE.begin(), POTE.end());
-    double min_POTH = *std::min_element(POTH.begin(), POTH.end());
+    double min_POTOTAL = *std::min_element(POTOTAL.begin(), POTOTAL.end());
     
-    std::cout << "\nNormalizando potenciais...\n";
-    std::cout << "min(POTE) = " << min_POTE << " Hartree\n";
-    std::cout << "min(POTH) = " << min_POTH << " Hartree\n";
+    std::cout << "\nNormalizando potencial...\n";
+    std::cout << "min(POTOTAL) = " << min_POTOTAL << " Rydberg\n";
     
     for (int i = 0; i < N; ++i) {
-        POTE[i] -= min_POTE;
-        POTH[i] -= min_POTH;
+        POTOTAL[i] -= min_POTOTAL;
     }
     
     // Salvar em arquivo CSV
     std::ofstream outfile(filename);
     outfile << std::setprecision(15);
-    outfile << "x,y,POTE,POTH\n";
+    outfile << "x,y,POTOTAL\n";
     
     for (int i = 0; i < N; ++i) {
         outfile << x_coords[i] << "," 
                 << y_coords[i] << "," 
-                << POTE[i] << "," 
-                << POTH[i] << "\n";
+                << POTOTAL[i] << "\n";
     }
     
     outfile.close();
     std::cout << "\nPotencial salvo em: " << filename << "\n";
 }
+
 
 // int main() {
 //     std::cout << "=======================\n";
@@ -125,13 +101,13 @@ void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonia
 //     double eps = 14.0;
 //     double eps1 = 4.5;
 //     double eps2 = 4.5;
-//     double theta = 0.5;
-//     double eField = 0.0;
+//     double theta = 0.5;  // em graus
+//     double eField = -50.0;  // meV/Å (use 0.0 para comparação inicial)
 
 //     TwistedBilayerSystem moire(theta, eField, thickness);
     
 //     std::cout << "Comprimento de moiré: " << moire.moireLength << " a0\n";
-//     std::cout << "Comprimento de moiré: " << moire.moireLength * a0 << " Angstrom\n\n";
+//     std::cout << "Comprimento de moiré: " << moire.moireLength * Constants::a0 << " Angstrom\n\n";
 
 //     double rho0 = alpha * thickness * eps / (eps1 + eps2);
 //     double me = 0.43;
@@ -143,6 +119,7 @@ void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonia
 //     int nParticles = 2;
 //     int nDim = 2;
 
+//     // Criar hamiltoniano
 //     TwistedHeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, 
 //                                                 moire, rho0, eps1, eps2);
 
@@ -191,7 +168,7 @@ int main() {
 
     std::vector<double> initParams = {c1, 0.1, 0.1, 0.1, 0.1, 0.1};
 
-    std::vector<double> optParams = {-1.30937, -3.30797, -0.0144402, -0.0144402, -0.0144402};
+    // std::vector<double> optParams = {-1.30937, -3.30797, -0.0144402, -0.0144402, -0.0144402};
 
     int nParticles = 2;
     int nDim = 2;
@@ -199,7 +176,7 @@ int main() {
     TwistedHeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, moire, rho0, eps1, eps2);
     TwistedBilayerExcitonWF wf(initParams, nParticles, nDim, moire);
 
-    wf.setParameters(optParams);
+    // wf.setParameters(optParams);
 
     std::random_device rd;
     unsigned int randomSeed = rd();
@@ -231,7 +208,7 @@ int main() {
 
 
     std::cout << "--- Rodando DMC ---\n";
-    double deltaTau = 0.1;
+    double deltaTau = 0.05;
     bool useFixedNode = false;
     bool useMaxBranch = true;
 
