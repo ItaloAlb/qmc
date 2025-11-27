@@ -11,19 +11,67 @@
 #include "wavefunctions/monolayer_trion_wf.h"
 #include "wavefunctions/monolayer_biexciton_wf.h"
 #include "wavefunctions/twisted_bilayer_exciton_wf.h"
+#include "wavefunctions/bilayer_exciton_wf.h"
 
 #include "hamiltonians/coulomb_hamiltonian.h"
 #include "hamiltonians/efficient_rk_hamiltonian.h"
 #include "hamiltonians/twisted_heterobilayer_hamiltonian.h"
+#include "hamiltonians/heterobilayer_hamiltonian.h"
 
-void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonian,
-                               const TwistedBilayerSystem& moire,
-                               int nx, int ny,
-                               double system_scale_x, double system_scale_y,
-                               const std::string& filename) {
+
+int main() {
+    std::cout << "============================\n";
+    std::cout << "   Interlayer exciton (X)   \n";
+    std::cout << "============================\n";
+
+    double d = 6.15;
+    double alpha = 1.5;
+    double eps = 14.0;
+    double eps1 = 4.5;
+    double eps2 = 4.5;
+
+    double rho0 = alpha * d * eps / (eps1 + eps2) / Constants::a0;
+
+    std::cout << rho0 << std::endl;
+
+    double me = 0.43;
+    double mh = 0.35;
+
+    std::vector<double> masses = {me,  mh};
+    std::vector<double> charges = {-1.0, +1.0};
+
+    double c1 = masses[0] * masses[2] / 2 / (masses[0] + masses[2]);
+    double c4 = - masses[0] / 4;
+
+    std::vector<double> initParams = {c1, 0.1, 0.1};
+
+    std::vector<double> optParams = {-2.30259, -3.175};
+
+    int nParticles = 2;
+    int nDim = 2;
+
+    HeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, d, rho0, eps1, eps2);
+    BilayerExcitonWF wf(initParams, nParticles, nDim, d);
+
+    wf.setParameters(optParams);
+
+    std::random_device rd;
+    unsigned int randomSeed = rd();
     
-    int N = nx * ny;
+    Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
+
+    JastrowBFGSOptimizer optVariance(0.1, 50, 1e5);
+    optVariance.optimize(wf, hamiltonian, optimizerSampler);
+
+
+    std::vector<double> params = wf.getParameters();
+    std::cout << "Parametros Otimizados: [" 
+              << params[0] << ", "
+              << params[1] << "]\n\n";
+
+    std::cout << "--- Rodando VMC ---\n";
     
+<<<<<<< HEAD
     // Calcular tamanho do sistema e espaçamento da grade
     double size_x = system_scale_x * moire.moireLength;
     double size_y = system_scale_y * moire.moireLength;
@@ -89,6 +137,126 @@ void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonia
     std::cout << "\nPotencial salvo em: " << filename << "\n";
 }
 
+=======
+    VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
+    vmc.run();
+
+    std::cout << "Energy: "             << vmc.result.energy             << "\n";
+    std::cout << "Variance: "           << vmc.result.variance           << "\n";
+    std::cout << "StdError: "           << vmc.result.stdError           << "\n";
+    std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
+    std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
+
+
+    std::cout << "--- Rodando DMC ---\n";
+    double deltaTau = 0.01;
+    bool useFixedNode = false;
+    bool useMaxBranch = true;
+
+    DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
+    dmc.run();
+
+    return 0;
+}
+
+// void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonian,
+//                                const TwistedBilayerSystem& moire,
+//                                int nx, int ny,
+//                                double system_scale_x, double system_scale_y,
+//                                const std::string& filename) {
+    
+//     int N = nx * ny;
+    
+//     // Calcular tamanho do sistema e espaçamento da grade
+//     double size_x = system_scale_x * moire.moireLength;
+//     double size_y = system_scale_y * moire.moireLength;
+//     double delta_x = size_x / nx;
+//     double delta_y = size_y / ny;
+    
+//     std::vector<double> POTE(N);
+//     std::vector<double> POTH(N);
+//     std::vector<double> x_coords(N);
+//     std::vector<double> y_coords(N);
+    
+//     std::cout << "Calculando potencial de moiré na grade...\n";
+//     std::cout << "nx = " << nx << ", ny = " << ny << ", N = " << N << "\n";
+//     std::cout << "size_x = " << size_x << " a0, size_y = " << size_y << " a0\n";
+//     std::cout << "delta_x = " << delta_x << " a0, delta_y = " << delta_y << " a0\n\n";
+    
+//     int l = 0;
+//     for (int j = 0; j < ny; ++j) {
+//         for (int i = 0; i < nx; ++i) {
+//             // Posição na grade (equivalente a Rshift[l] no Python)
+//             double x = i * delta_x;
+//             double y = j * delta_y;
+            
+//             // Criar vetor position: [xe, ye, xh, yh]
+//             // Avaliar potencial com elétron e buraco na mesma posição
+//             // double position[4] = {x, y, x, y};
+            
+//             // Calcular Ve e Vh separadamente
+//             double K1_dot_r = moire.k1x * x + moire.k1y * y;
+//             double K2_dot_r = moire.k2x * x + moire.k2y * y;
+//             double K3_dot_r = moire.k3x * x + moire.k3y * y;
+            
+//             std::complex<double> f1 = (std::exp(-1i * K1_dot_r) + 
+//                                        std::exp(-1i * K2_dot_r) + 
+//                                        std::exp(-1i * K3_dot_r)) / 3.0;
+            
+//             std::complex<double> f2 = (std::exp(-1i * K1_dot_r) + 
+//                                        std::exp(-1i * (K2_dot_r + moire.HALF_PHASE)) + 
+//                                        std::exp(-1i * (K3_dot_r + moire.PHASE))) / 3.0;
+            
+//             double f1Squared = std::norm(f1);
+//             double f2Squared = std::norm(f2);
+            
+//             double d = moire.d0 + moire.d1 * f1Squared + moire.d2 * f2Squared;
+            
+//             double Ve = moire.Ve1 * f1Squared + moire.Ve2 * f2Squared + moire.eField * d * 0.5;
+//             double Vh = moire.Vh1 * f1Squared + moire.Vh2 * f2Squared + moire.eField * d * 0.5;
+            
+//             POTE[l] = Ve;
+//             POTH[l] = Vh;
+//             x_coords[l] = x;
+//             y_coords[l] = y;
+//             l++;
+//         }
+        
+//         // Mostrar progresso
+//         if ((j + 1) % 10 == 0) {
+//             std::cout << "Progresso: " << (j + 1) << "/" << ny << " linhas\n";
+//         }
+//     }
+    
+//     // Normalizar (subtrair mínimo como no Python)
+//     double min_POTE = *std::min_element(POTE.begin(), POTE.end());
+//     double min_POTH = *std::min_element(POTH.begin(), POTH.end());
+    
+//     std::cout << "\nNormalizando potenciais...\n";
+//     std::cout << "min(POTE) = " << min_POTE << " Hartree\n";
+//     std::cout << "min(POTH) = " << min_POTH << " Hartree\n";
+    
+//     for (int i = 0; i < N; ++i) {
+//         POTE[i] -= min_POTE;
+//         POTH[i] -= min_POTH;
+//     }
+    
+//     // Salvar em arquivo CSV
+//     std::ofstream outfile(filename);
+//     outfile << std::setprecision(15);
+//     outfile << "x,y,POTE,POTH\n";
+    
+//     for (int i = 0; i < N; ++i) {
+//         outfile << x_coords[i] << "," 
+//                 << y_coords[i] << "," 
+//                 << POTE[i] << "," 
+//                 << POTH[i] << "\n";
+//     }
+    
+//     outfile.close();
+//     std::cout << "\nPotencial salvo em: " << filename << "\n";
+// }
+>>>>>>> 7cc8d8dc684204dc50923fbf969f49e23621a976
 
 // int main() {
 //     std::cout << "=======================\n";
@@ -96,7 +264,7 @@ void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonia
 //     std::cout << "=======================\n\n";
 
 //     // Parâmetros do sistema
-//     double thickness = 6.15 / Constants::a0;
+//     double thickness = 6.15;
 //     double alpha = 1.5;
 //     double eps = 14.0;
 //     double eps1 = 4.5;
@@ -109,7 +277,7 @@ void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonia
 //     std::cout << "Comprimento de moiré: " << moire.moireLength << " a0\n";
 //     std::cout << "Comprimento de moiré: " << moire.moireLength * Constants::a0 << " Angstrom\n\n";
 
-//     double rho0 = alpha * thickness * eps / (eps1 + eps2);
+//     double rho0 = alpha * 2 * thickness * eps / (eps1 + eps2) / Constants::a0;
 //     double me = 0.43;
 //     double mh = 0.35;
 
@@ -139,84 +307,99 @@ void computeMoireGridPotential(const TwistedHeterobilayerHamiltonian& hamiltonia
 //     return 0;
 // }
 
-int main() {
-    std::cout << "=======================\n";
-    std::cout << "   Moiré exciton (X)   \n";
-    std::cout << "=======================\n";
+// int main() {
+//     std::cout << "=======================\n";
+//     std::cout << "   Moiré exciton (X)   \n";
+//     std::cout << "=======================\n";
 
-    double thickness = 6.15 / Constants::a0;
-    double alpha = 1.5;
-    double eps = 14.0;
-    double eps1 = 4.5;
-    double eps2 = 4.5;
-    double theta = 0.5;
-    double eField = 0.0;
+//     double thickness = 6.15;
+//     double alpha = 1.5;
+//     double eps = 14.0;
+//     double eps1 = 4.5;
+//     double eps2 = 4.5;
+//     double theta = 0.5;
+//     double eField = -50.0;
 
-    TwistedBilayerSystem moire(theta, eField, thickness);
+//     TwistedBilayerSystem moire(theta, eField, thickness);
 
-    // double X2D = 6.393 / Constants::a0;
-    double rho0 = alpha * thickness * eps / (eps1 + eps2);
+//     // double X2D = 6.393 / Constants::a0;
+//     double rho0 = alpha * 2 * thickness * eps / (eps1 + eps2);
 
-    double me = 0.43;
-    double mh = 0.35;
+//     double me = 0.43;
+//     double mh = 0.35;
 
-    std::vector<double> masses = {me,  mh};
-    std::vector<double> charges = {-1.0, +1.0};
+//     std::vector<double> masses = {me,  mh};
+//     std::vector<double> charges = {-1.0, +1.0};
 
-    double c1 = masses[0] * masses[2] / 2 / (masses[0] + masses[2]);
-    double c4 = - masses[0] / 4;
+//     double c1 = masses[0] * masses[2] / 2 / (masses[0] + masses[2]);
+//     double c4 = - masses[0] / 4;
 
-    std::vector<double> initParams = {c1, 0.1, 0.1, 0.1, 0.1, 0.1};
+//     std::vector<double> initParams = {c1, 0.1, 0.1, 0.1, 0.1, 0.1};
 
+<<<<<<< HEAD
     // std::vector<double> optParams = {-1.30937, -3.30797, -0.0144402, -0.0144402, -0.0144402};
+=======
+//     std::vector<double> optParams = {-1.30937, -3.30797, -0.0144402, -0.0144402, -0.0144402};
+>>>>>>> 7cc8d8dc684204dc50923fbf969f49e23621a976
 
-    int nParticles = 2;
-    int nDim = 2;
+//     int nParticles = 2;
+//     int nDim = 2;
 
-    TwistedHeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, moire, rho0, eps1, eps2);
-    TwistedBilayerExcitonWF wf(initParams, nParticles, nDim, moire);
+//     TwistedHeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, moire, rho0, eps1, eps2);
+//     TwistedBilayerExcitonWF wf(initParams, nParticles, nDim, moire);
 
+<<<<<<< HEAD
     // wf.setParameters(optParams);
+=======
+//     wf.setParameters(optParams);
+>>>>>>> 7cc8d8dc684204dc50923fbf969f49e23621a976
 
-    std::random_device rd;
-    unsigned int randomSeed = rd();
+//     std::random_device rd;
+//     unsigned int randomSeed = rd();
     
-    Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
+//     Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
 
-    JastrowBFGSOptimizer optVariance(0.1, 50, 1e5);
-    optVariance.optimize(wf, hamiltonian, optimizerSampler);
+//     JastrowBFGSOptimizer optVariance(0.1, 50, 1e5);
+//     optVariance.optimize(wf, hamiltonian, optimizerSampler);
 
 
-    std::vector<double> params = wf.getParameters();
-    std::cout << "Parametros Otimizados: [" 
-              << params[0] << ", "
-              << params[1] << ", "
-              << params[2] << ", "
-              << params[3] << ", "
-              << params[4] << "]\n\n";
+//     std::vector<double> params = wf.getParameters();
+//     std::cout << "Parametros Otimizados: [" 
+//               << params[0] << ", "
+//               << params[1] << ", "
+//               << params[2] << ", "
+//               << params[3] << ", "
+//               << params[4] << "]\n\n";
 
-    std::cout << "--- Rodando VMC ---\n";
+//     std::cout << "--- Rodando VMC ---\n";
     
-    VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
-    vmc.run();
+//     VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
+//     vmc.run();
 
-    std::cout << "Energy: "             << vmc.result.energy             << "\n";
-    std::cout << "Variance: "           << vmc.result.variance           << "\n";
-    std::cout << "StdError: "           << vmc.result.stdError           << "\n";
-    std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
-    std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
+//     std::cout << "Energy: "             << vmc.result.energy             << "\n";
+//     std::cout << "Variance: "           << vmc.result.variance           << "\n";
+//     std::cout << "StdError: "           << vmc.result.stdError           << "\n";
+//     std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
+//     std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
 
 
+<<<<<<< HEAD
     std::cout << "--- Rodando DMC ---\n";
     double deltaTau = 0.05;
     bool useFixedNode = false;
     bool useMaxBranch = true;
+=======
+//     std::cout << "--- Rodando DMC ---\n";
+//     double deltaTau = 0.1;
+//     bool useFixedNode = false;
+//     bool useMaxBranch = true;
+>>>>>>> 7cc8d8dc684204dc50923fbf969f49e23621a976
 
-    DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
-    dmc.run();
+//     DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
+//     dmc.run();
 
-    return 0;
-}
+//     return 0;
+// }
 
 // int main() {
 //     std::cout << "==============\n";

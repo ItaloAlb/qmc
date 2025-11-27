@@ -39,11 +39,11 @@ struct TwistedBilayerSystem {
     double k1x, k1y, k2x, k2y, k3x, k3y;
     
     TwistedBilayerSystem(double theta_, double eField_, double thickness_) 
-        : theta(theta_ * PI / 180), eField(eField_ * a0 / HARTREE), thickness(thickness_)
+        : theta(theta_ * PI / 180), eField(eField_ * a0 / HARTREE), thickness(thickness_ / Constants::a0)
     {
         moireLength = a10 / std::sqrt(theta*theta + delta*delta) / a0;
         absK = (4.0 * PI) / (3.0 * moireLength);
-        thicknessSquared = thickness_ * thickness_;
+        thicknessSquared = thickness * thickness;
 
         k1x = absK * 1.0;
         k1y = absK * 0.0;

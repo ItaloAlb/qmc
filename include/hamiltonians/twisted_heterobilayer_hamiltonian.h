@@ -72,7 +72,6 @@ class TwistedHeterobilayerHamiltonian : public Hamiltonian {
                 double Vh = moire.Vh1 * f1hSquared + moire.Vh2 * f2hSquared + moire.eField * dh * 0.5;
                 
                 return Ve + Vh;
-
         }
 
         double getHeterobilayerRytovaKeldysh(const double* position) const {
