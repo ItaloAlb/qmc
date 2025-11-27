@@ -32,8 +32,6 @@ int main() {
 
     double rho0 = alpha * 2 * d * eps / (eps1 + eps2) / Constants::a0;
 
-    std::cout << rho0 << std::endl;
-
     double me = 0.43;
     double mh = 0.35;
 
@@ -71,73 +69,6 @@ int main() {
 
     std::cout << "--- Rodando VMC ---\n";
     
-<<<<<<< HEAD
-    // Calcular tamanho do sistema e espaçamento da grade
-    double size_x = system_scale_x * moire.moireLength;
-    double size_y = system_scale_y * moire.moireLength;
-    double delta_x = size_x / nx;
-    double delta_y = size_y / ny;
-    
-    std::vector<double> POTOTAL(N);
-    std::vector<double> x_coords(N);
-    std::vector<double> y_coords(N);
-    
-    std::cout << "Calculando potencial de moiré na grade...\n";
-    std::cout << "nx = " << nx << ", ny = " << ny << ", N = " << N << "\n";
-    std::cout << "size_x = " << size_x << " a0, size_y = " << size_y << " a0\n";
-    std::cout << "delta_x = " << delta_x << " a0, delta_y = " << delta_y << " a0\n\n";
-    
-    int l = 0;
-    for (int j = 0; j < ny; ++j) {
-        for (int i = 0; i < nx; ++i) {
-            // Posição na grade (equivalente a Rshift[l] no Python)
-            double x = i * delta_x;
-            double y = j * delta_y;
-            
-            // Criar vetor position: [xe, ye, xh, yh]
-            // Avaliar potencial com elétron e buraco na mesma posição
-            double position[4] = {x, y, x, y};
-            
-            // Usar a função do hamiltoniano (retorna Ve + Vh)
-            POTOTAL[l] = hamiltonian.getTMDMoirePotential(position);
-            
-            x_coords[l] = x;
-            y_coords[l] = y;
-            l++;
-        }
-        
-        // Mostrar progresso
-        if ((j + 1) % 10 == 0) {
-            std::cout << "Progresso: " << (j + 1) << "/" << ny << " linhas\n";
-        }
-    }
-    
-    // Normalizar (subtrair mínimo como no Python)
-    double min_POTOTAL = *std::min_element(POTOTAL.begin(), POTOTAL.end());
-    
-    std::cout << "\nNormalizando potencial...\n";
-    std::cout << "min(POTOTAL) = " << min_POTOTAL << " Rydberg\n";
-    
-    for (int i = 0; i < N; ++i) {
-        POTOTAL[i] -= min_POTOTAL;
-    }
-    
-    // Salvar em arquivo CSV
-    std::ofstream outfile(filename);
-    outfile << std::setprecision(15);
-    outfile << "x,y,POTOTAL\n";
-    
-    for (int i = 0; i < N; ++i) {
-        outfile << x_coords[i] << "," 
-                << y_coords[i] << "," 
-                << POTOTAL[i] << "\n";
-    }
-    
-    outfile.close();
-    std::cout << "\nPotencial salvo em: " << filename << "\n";
-}
-
-=======
     VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
     vmc.run();
 
@@ -256,7 +187,6 @@ int main() {
 //     outfile.close();
 //     std::cout << "\nPotencial salvo em: " << filename << "\n";
 // }
->>>>>>> 7cc8d8dc684204dc50923fbf969f49e23621a976
 
 // int main() {
 //     std::cout << "=======================\n";
