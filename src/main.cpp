@@ -30,7 +30,7 @@ int main() {
     double eps1 = 4.5;
     double eps2 = 4.5;
 
-    double rho0 = alpha * d * eps / (eps1 + eps2) / Constants::a0;
+    double rho0 = alpha * 2 * d * eps / (eps1 + eps2) / Constants::a0;
 
     std::cout << rho0 << std::endl;
 
