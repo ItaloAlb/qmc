@@ -49,15 +49,7 @@ void setParameters(const std::vector<double>& newParams) override {
         double term2 = c3 * r * (1.0 - exp);
         return std::exp(term1 - term2);
     }
-
-    double jastrowEE(double r, double r2) const {
-        double c4 = params[3];
-        double c5 = params[4];
-
-        double exparg = c4 * r2 * std::log(r) * std::exp(-c5 * r2);
-        return std::exp(exparg);
-    }
-
+    
     double variationalPotential(const double* position) const {
         double xe = position[0];
         double ye = position[1];

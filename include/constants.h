@@ -16,7 +16,7 @@ namespace Constants {
     const double MIN_POPULATION_RATIO = 1e-4;
 
     const int N_BLOCK_STEPS = 300;
-    const int N_STEPS_PER_BLOCK = 200;
+    const int N_STEPS_PER_BLOCK = 100;
     const int RUNNING_AVERAGE_WINDOW = 100;
 
 
