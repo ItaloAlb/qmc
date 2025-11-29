@@ -15,13 +15,13 @@ public:
         return new TwistedBilayerExcitonWF(*this);
     }
 
-void setParameters(const std::vector<double>& newParams) override {
+    void setParameters(const std::vector<double>& newParams) override {
         if (newParams.size() == 5) {
             double p_c2 = newParams[0];
             double p_c3 = newParams[1];
             double p_c4 = newParams[2];
-            double p_c5 = newParams[2];
-            double p_c6 = newParams[2];
+            double p_c5 = newParams[3];
+            double p_c6 = newParams[4];
 
             params[1] = std::exp(p_c2);
             params[2] = std::exp(p_c3);
@@ -30,6 +30,22 @@ void setParameters(const std::vector<double>& newParams) override {
             params[5] = p_c6;
         }
     }
+
+    // void setParameters(const std::vector<double>& newParams) override {
+    //     if (newParams.size() == 3) {
+    //         // double p_c2 = newParams[0];
+    //         // double p_c3 = newParams[1];
+    //         double p_c4 = newParams[0];
+    //         double p_c5 = newParams[1];
+    //         double p_c6 = newParams[2];
+
+    //         // params[1] = std::exp(p_c2);
+    //         // params[2] = std::exp(p_c3);
+    //         params[0] = p_c4;
+    //         params[1] = p_c5;
+    //         params[2] = p_c6;
+    //     }
+    // }
 
     std::vector<double> getParameters() const override {
         return { 
@@ -40,6 +56,16 @@ void setParameters(const std::vector<double>& newParams) override {
             params[5]
         };
     }
+
+    // std::vector<double> getParameters() const override {
+    //     return { 
+    //         // std::log(params[1]),
+    //         // std::log(params[2]),
+    //         params[0], 
+    //         params[1], 
+    //         params[2]
+    //     };
+    // }
 
     double jastrowEH(double r, double r2) const {
         double c1 = params[0];
@@ -114,6 +140,8 @@ void setParameters(const std::vector<double>& newParams) override {
         }
         double r = std::sqrt(r2);
 
+        // return (1 - variationalPotential(position));
         return jastrowEH(r, r2) * (1 - variationalPotential(position));
+
     }
 };

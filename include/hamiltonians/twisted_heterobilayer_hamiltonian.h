@@ -88,6 +88,6 @@ class TwistedHeterobilayerHamiltonian : public Hamiltonian {
         }
 
         double getPotential(const double* position) const override {
-            return getHeterobilayerRytovaKeldysh(position) + getTMDMoirePotential(position);
+            return getTMDMoirePotential(position);
         }
 };
