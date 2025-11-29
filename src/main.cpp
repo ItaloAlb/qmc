@@ -265,7 +265,7 @@ int main() {
 
     std::vector<double> initParams = {c1, 0.1, 0.1, 0.1, 0.1, 0.1};
 
-    std::vector<double> optParams = {-1.30937, -3.69683, -0.277828, -0.277828, -0.277828};
+    std::vector<double> optParams = {-1.30937, -3.6969, -0.27779, -0.27779, -0.27779};
 
     int nParticles = 2;
     int nDim = 2;
@@ -305,7 +305,7 @@ int main() {
 
 
     std::cout << "--- Rodando DMC ---\n";
-    double deltaTau = 0.05;
+    double deltaTau = 0.01;
     bool useFixedNode = false;
     bool useMaxBranch = true;
 

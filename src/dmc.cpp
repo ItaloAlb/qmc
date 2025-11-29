@@ -207,14 +207,18 @@ double DMC::driftGreenFunction(const double* newPosition,
                                const double* oldDrift) const {
     
     double exparg = 0.0;
+    double prefactor = 1.0;
 
     for (int j = 0; j < stride; j++) {
+        double m = hamiltonian.getMasses()[j / dim];
         double diff = newPosition[j] - oldPosition[j] - deltaTau * oldDrift[j];
-        
-        exparg -= (hamiltonian.getMasses()[j / dim] * diff * diff) / (2.0 * deltaTau);
+
+        exparg -= (m * diff * diff) / (2.0 * deltaTau);
+
+        prefactor *= std::sqrt(m / (2.0 * PI * deltaTau));
     }
 
-    return std::exp(exparg);
+    return prefactor * std::exp(exparg);
 }
 
 double DMC::branchGreenFunction(double newLocalEnergy,

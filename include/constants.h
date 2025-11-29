@@ -15,8 +15,8 @@ namespace Constants {
     const int MAX_BRANCH_FACTOR = 3;
     const double MIN_POPULATION_RATIO = 1e-4;
 
-    const int N_BLOCK_STEPS = 500;
-    const int N_STEPS_PER_BLOCK = 200;
+    const int N_BLOCK_STEPS = 1000;
+    const int N_STEPS_PER_BLOCK = 1000;
     const int RUNNING_AVERAGE_WINDOW = 100;
 
 

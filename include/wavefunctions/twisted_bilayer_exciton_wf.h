@@ -25,9 +25,9 @@ void setParameters(const std::vector<double>& newParams) override {
 
             params[1] = std::exp(p_c2);
             params[2] = std::exp(p_c3);
-            params[3] = std::exp(p_c4);
-            params[4] = std::exp(p_c5);
-            params[5] = std::exp(p_c6);
+            params[3] = p_c4;
+            params[4] = p_c5;
+            params[5] = p_c6;
         }
     }
 
@@ -35,9 +35,9 @@ void setParameters(const std::vector<double>& newParams) override {
         return { 
             std::log(params[1]),
             std::log(params[2]),
-            std::log(params[3]), 
-            std::log(params[4]), 
-            std::log(params[5])
+            params[3], 
+            params[4], 
+            params[5]
         };
     }
 
