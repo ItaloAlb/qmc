@@ -25,7 +25,7 @@ namespace Constants {
     
 
     //UTILS
-    const double EQUILIBRATION_STEPS = 1e4;
+    const double EQUILIBRATION_STEPS = 1e6;
     const double MIN_METROPOLIS_STEP = 1e-4;
     const double MIN_DISTANCE = 1e-8;
     const double FINITE_DIFFERENCE_STEP = 1e-3;
