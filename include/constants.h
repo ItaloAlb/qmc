@@ -16,7 +16,7 @@ namespace Constants {
     const double MIN_POPULATION_RATIO = 1e-4;
 
     const int N_BLOCK_STEPS = 1000;
-    const int N_STEPS_PER_BLOCK = 1000;
+    const int N_STEPS_PER_BLOCK = 100;
     const int RUNNING_AVERAGE_WINDOW = 100;
 
 
@@ -25,10 +25,10 @@ namespace Constants {
     
 
     //UTILS
-    const double EQUILIBRATION_STEPS = 1e6;
+    const double EQUILIBRATION_STEPS = 1e5;
     const double MIN_METROPOLIS_STEP = 1e-4;
     const double MIN_DISTANCE = 1e-8;
-    const double FINITE_DIFFERENCE_STEP = 1e-3;
+    const double FINITE_DIFFERENCE_STEP = 1e-4;
     const double FINITE_DIFFERENCE_STEP_2 = FINITE_DIFFERENCE_STEP * FINITE_DIFFERENCE_STEP;
 
     const double RYDBERG = 13605.7;  // meV

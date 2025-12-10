@@ -30,7 +30,7 @@ int main() {
     double eps1 = 4.5;
     double eps2 = 4.5;
     double theta = 0.5;
-    double eField = 0.0;
+    double eField = -400.0;
 
     TwistedBilayerSystem moire(theta, eField, thickness);
 
@@ -42,17 +42,17 @@ int main() {
     std::vector<double> masses = {me,  mh};
     std::vector<double> charges = {-1.0, +1.0};
 
-    std::vector<double> initParams = {40.19272606552702, 40.239856979430904, 37.53022734622806, 37.48114941612162};
+    std::vector<double> initParams = {1.8483364426165272, 1.8620747840453462, 1.8515734223858118, 1.8604930421472359};
 
     int nParticles = 2;
     int nDim = 2;
 
     TwistedHeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, moire, rho0, eps1, eps2);
     TwistedBilayerExcitonGaussianWF wf(initParams, nParticles, nDim, 
-        243.7065269470374, 
-        140.90486101153837,
-        243.6684947884633,
-        140.77958421125703);
+        281.3288049266271, 
+        162.431358619177,
+        281.32878651331225,
+        162.43103456288534);
 
 
     std::random_device rd;
@@ -73,7 +73,7 @@ int main() {
 
 
     std::cout << "--- Rodando DMC ---\n";
-    double deltaTau = 0.01;
+    double deltaTau = 0.1;
     bool useFixedNode = false;
     bool useMaxBranch = true;
 
@@ -163,7 +163,6 @@ int main() {
     
 //     int N = nx * ny;
     
-//     // Calcular tamanho do sistema e espaçamento da grade
 //     double size_x = system_scale_x * moire.moireLength;
 //     double size_y = system_scale_y * moire.moireLength;
 //     double delta_x = size_x / nx;
@@ -182,15 +181,9 @@ int main() {
 //     int l = 0;
 //     for (int j = 0; j < ny; ++j) {
 //         for (int i = 0; i < nx; ++i) {
-//             // Posição na grade (equivalente a Rshift[l] no Python)
 //             double x = i * delta_x;
 //             double y = j * delta_y;
-            
-//             // Criar vetor position: [xe, ye, xh, yh]
-//             // Avaliar potencial com elétron e buraco na mesma posição
-//             // double position[4] = {x, y, x, y};
-            
-//             // Calcular Ve e Vh separadamente
+
 //             double K1_dot_r = moire.k1x * x + moire.k1y * y;
 //             double K2_dot_r = moire.k2x * x + moire.k2y * y;
 //             double K3_dot_r = moire.k3x * x + moire.k3y * y;
@@ -218,7 +211,6 @@ int main() {
 //             l++;
 //         }
         
-//         // Mostrar progresso
 //         if ((j + 1) % 10 == 0) {
 //             std::cout << "Progresso: " << (j + 1) << "/" << ny << " linhas\n";
 //         }
@@ -227,17 +219,22 @@ int main() {
 //     // Normalizar (subtrair mínimo como no Python)
 //     double min_POTE = *std::min_element(POTE.begin(), POTE.end());
 //     double min_POTH = *std::min_element(POTH.begin(), POTH.end());
+
+//     double max_POTE = *std::max_element(POTE.begin(), POTE.end());
+//     double max_POTH = *std::max_element(POTH.begin(), POTH.end());
     
 //     std::cout << "\nNormalizando potenciais...\n";
 //     std::cout << "min(POTE) = " << min_POTE << " Hartree\n";
 //     std::cout << "min(POTH) = " << min_POTH << " Hartree\n";
+
+//     std::cout << "max(POTE) = " << max_POTE << " Hartree\n";
+//     std::cout << "max(POTH) = " << max_POTH << " Hartree\n";
     
 //     for (int i = 0; i < N; ++i) {
 //         POTE[i] -= min_POTE;
 //         POTH[i] -= min_POTH;
 //     }
     
-//     // Salvar em arquivo CSV
 //     std::ofstream outfile(filename);
 //     outfile << std::setprecision(15);
 //     outfile << "x,y,POTE,POTH\n";
@@ -251,6 +248,82 @@ int main() {
     
 //     outfile.close();
 //     std::cout << "\nPotencial salvo em: " << filename << "\n";
+// }
+
+// void computeRytovaKeldyshGrid(const TwistedHeterobilayerHamiltonian& hamiltonian,
+//                               int nx, int ny,
+//                               double system_scale_x, double system_scale_y,
+//                               double grid_scaling, 
+//                               const std::string& filename) {
+    
+//     int N = nx * ny;
+    
+//     // Define o tamanho da janela de visualização do potencial
+//     double size_x = system_scale_x * grid_scaling;
+//     double size_y = system_scale_y * grid_scaling;
+//     double delta_x = size_x / nx;
+//     double delta_y = size_y / ny;
+    
+//     std::vector<double> RK(N);
+//     std::vector<double> x_coords(N);
+//     std::vector<double> y_coords(N);
+    
+//     std::vector<double> pos(4, 0.0); 
+    
+//     std::cout << "Mapeando Potencial Rytova-Keldysh (espaco relativo)...\n";
+
+//     int l = 0;
+//     for (int j = 0; j < ny; ++j) {
+//         for (int i = 0; i < nx; ++i) {
+//             // Coordenada relativa r = (rx, ry)
+//             double rx = i * delta_x; 
+//             double ry = j * delta_y;
+
+//             // PREPARAÇÃO PARA O C++:
+//             // O método getHeterobilayerRytovaKeldysh calcula internamente:
+//             // dist = pos[k] - pos[k + dim]
+//             // Para que dist seja igual a rx, fazemos:
+            
+//             pos[0] = rx;   // x da partícula 1
+//             pos[1] = ry;   // y da partícula 1
+//             pos[2] = 0.0;  // x da partícula 2
+//             pos[3] = 0.0;  // y da partícula 2
+            
+//             // Agora a distância interna será sqrt((rx-0)^2 + (ry-0)^2) = r
+//             // Isso reproduz exatamente o cálculo do Python: r = sqrt(x^2 + y^2)
+
+//             RK[l] = hamiltonian.getHeterobilayerRytovaKeldysh(pos.data());
+            
+//             x_coords[l] = rx;
+//             y_coords[l] = ry;
+//             l++;
+//         }
+//     }
+    
+//     // Normalização (subtraindo o mínimo para comparar formatos)
+//     double min_RK = *std::min_element(RK.begin(), RK.end());
+//     double max_RK = *std::max_element(RK.begin(), RK.end());
+    
+//     std::cout << "Normalizando RK...\n";
+//     std::cout << "min(RK) = " << min_RK << " Ha\n";
+//     std::cout << "max(RK) = " << max_RK << " Ha\n";
+    
+//     for (int i = 0; i < N; ++i) {
+//         RK[i] -= min_RK;
+//     }
+    
+//     std::ofstream outfile(filename);
+//     outfile << std::setprecision(15);
+//     outfile << "x,y,RK\n";
+    
+//     for (int i = 0; i < N; ++i) {
+//         outfile << x_coords[i] << "," 
+//                 << y_coords[i] << "," 
+//                 << RK[i] << "\n";
+//     }
+    
+//     outfile.close();
+//     std::cout << "Dados salvos em: " << filename << "\n";
 // }
 
 // int main() {
@@ -289,13 +362,23 @@ int main() {
 //     // Parâmetros da grade (mesmos do Python)
 //     int nx = int(100 * std::sqrt(3.0));
 //     int ny = 100;
-//     double system_scale_x = 3.0 * std::sqrt(3.0);
-//     double system_scale_y = 3.0;
+//     double system_scale_x = 1.0 * std::sqrt(3.0);
+//     double system_scale_y = 1.0;
+
+//     std::cout << "rho0 usado: " << rho0 << "\n";
+//     std::cout << "thicknessSquared usado: " << moire.thicknessSquared << "\n";
 
 //     // Calcular e salvar potencial na grade
 //     computeMoireGridPotential(hamiltonian, moire, nx, ny, 
 //                               system_scale_x, system_scale_y,
 //                               "moire_potential_cpp.csv");
+
+//     double grid_scaling = moire.moireLength; 
+
+//     computeRytovaKeldyshGrid(hamiltonian, nx, ny, 
+//                             system_scale_x, system_scale_y, 
+//                             grid_scaling,
+//                             "rk_potential_cpp.csv");
 
 //     std::cout << "\nFinalizado!\n";
 
