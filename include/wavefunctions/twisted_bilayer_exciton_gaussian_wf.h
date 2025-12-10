@@ -17,12 +17,12 @@ private:
 
 public:
     TwistedBilayerExcitonGaussianWF(
-        const std::vector<double>& varParams,
+        const std::vector<double>& params,
         int nParticles,
         int dim,
         double xe0_, double ye0_,
         double xh0_, double yh0_
-    ) : WaveFunction(varParams, nParticles, dim),
+    ) : WaveFunction(params, nParticles, dim),
         xe0(xe0_), ye0(ye0_),
         xh0(xh0_), yh0(yh0_)
     {}
@@ -32,12 +32,10 @@ public:
     }
 
     void setParameters(const std::vector<double>& newParams) override {
-        if (newParams.size() == 2) {
-            params[0] = newParams[0];
-            params[1] = newParams[1];
-            params[2] = newParams[2];
-            params[3] = newParams[3];
-        }
+        params[0] = newParams[0];
+        params[1] = newParams[1];
+        params[2] = newParams[2];
+        params[3] = newParams[3];
     }
 
     std::vector<double> getParameters() const override {

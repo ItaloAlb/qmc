@@ -6,6 +6,7 @@
 #include "hamiltonian.h"
 #include "wavefunction.h"
 #include "utils.h"
+#include "constants.h"
 
 using namespace Utils;
 
@@ -19,62 +20,87 @@ public:
 
 
 class JastrowBFGSOptimizer : public Optimizer {
-    private:
-        double learningRate;
-        int maxEpochs;
-        int samplesPerEpoch;
+private:
+    double learningRate;
+    int maxEpochs;
+    int samplesPerEpoch;
 
+    std::vector<double> currentPosition;
+    bool isInitialized = false;
+    double currentStepSize;
+
+    void adjustStepSize(WaveFunction& wf, Metropolis& sampler, double& currentPsi) {
+        double targetAcc = 0.5;
+        int adjustInterval = 100;
+        int acceptedCount = 0;
         
-        std::pair<double, std::vector<double>> computeGradients(
+        for (int i = 0; i < Constants::EQUILIBRATION_STEPS; ++i) { 
+            if (sampler.step(wf, currentPosition, currentPsi)) {
+                acceptedCount++;
+            }
+            
+            if ((i + 1) % adjustInterval == 0) {
+                double accRate = (double)acceptedCount / adjustInterval;
+                double oldStep = sampler.getStepSize();
+                
+                double newStep = oldStep * (1.0 + 0.5 * (accRate - targetAcc));
+
+                sampler.setStepSize(newStep);
+                currentStepSize = newStep;
+                acceptedCount = 0;
+            }
+        }
+    }
+
+    std::pair<double, std::vector<double>> computeGradients(
         WaveFunction& wf, Hamiltonian& ham, Metropolis& sampler, const std::vector<double>& params) 
     {
         int nParams = params.size();
-        
+
+        double currentPsi = wf.trialWaveFunction(currentPosition.data());
+
+        for(int i=0; i<Constants::EQUILIBRATION_STEPS; ++i) {
+            sampler.step(wf, currentPosition, currentPsi);
+        }
+
         double sumE = 0.0;
-        double sumE2 = 0.0;
         std::vector<double> sumO(nParams, 0.0);
         std::vector<double> sumEO(nParams, 0.0);
-        std::vector<double> sumE2O(nParams, 0.0);
-
-        std::vector<double> R(wf.getStride()); 
-        std::mt19937 tempGen(1234);
-        std::uniform_real_distribution<double> dist(-1.0, 1.0);
-        for (auto& pos : R) pos = dist(tempGen);
         
-        double currentPsi = wf.trialWaveFunction(R.data());
+        double accepted = 0.0;
 
-        // Loop VMC
         for (int step = 0; step < samplesPerEpoch; ++step) {
-            sampler.step(wf, R, currentPsi);
+            bool acc = sampler.step(wf, currentPosition, currentPsi);
+            if(acc) accepted += 1.0;
             
-            double EL = ham.getLocalEnergy(wf, R.data());
-            std::vector<double> O = wf.parameterGradient(R.data()); // O = Gradiente Logaritmico
+            double EL = ham.getLocalEnergy(wf, currentPosition.data());
+            std::vector<double> O = wf.parameterGradient(currentPosition.data());
 
             sumE += EL;
-            sumE2 += EL * EL;
+
 
             for (int i = 0; i < nParams; ++i) {
                 sumO[i]   += O[i];
                 sumEO[i]  += EL * O[i];
-                sumE2O[i] += (EL * EL) * O[i]; // Acumula termo de variança
             }
         }
 
-        // Médias
-        double avgE = sumE / samplesPerEpoch;
-        double avgE2 = sumE2 / samplesPerEpoch;
-        double variance = avgE2 - (avgE * avgE);
+        double accRate = accepted / samplesPerEpoch;
+        if (accRate < 0.2 || accRate > 0.8) {
+             adjustStepSize(wf, sampler, currentPsi);
+        }
 
+        double avgE = sumE / samplesPerEpoch;
         std::vector<double> finalGrad(nParams);
 
         for (int i = 0; i < nParams; ++i) {
-                double avgO = sumO[i] / samplesPerEpoch;
-                double avgEO = sumEO[i] / samplesPerEpoch;
-                finalGrad[i] = 2.0 * (avgEO - (avgE * avgO));
-            }
-            return {avgE, finalGrad};
-    }
+            double avgO = sumO[i] / samplesPerEpoch;
+            double avgEO = sumEO[i] / samplesPerEpoch;
+            finalGrad[i] = 2.0 * (avgEO - (avgE * avgO));
+        }
 
+        return {avgE, finalGrad};
+    }
     public:
         JastrowBFGSOptimizer(double lr, int epochs, int samples)
         : learningRate(lr), maxEpochs(epochs), samplesPerEpoch(samples) {}
@@ -83,10 +109,22 @@ class JastrowBFGSOptimizer : public Optimizer {
             std::vector<double> currentParams = wf.getParameters();
             int nParams = currentParams.size();
 
+            currentPosition.resize(wf.getStride());
+            std::mt19937 tempGen(1234);
+            std::uniform_real_distribution<double> dist(-1.0, 1.0); 
+            for (auto& pos : currentPosition) pos = dist(tempGen);
+            
+            currentStepSize = sampler.getStepSize(); 
+            if(currentStepSize < 0.1) currentStepSize = 1.0;
+            sampler.setStepSize(currentStepSize);
+
+            double psiTmp = wf.trialWaveFunction(currentPosition.data());
+            adjustStepSize(wf, sampler, psiTmp);
+
             std::vector<std::vector<double>> H(nParams, std::vector<double>(nParams, 0.0));
             for (int i = 0; i < nParams; ++i) H[i][i] = 1.0;
 
-            std::cout << "Iniciando Otimizacao BFGS..." << std::endl;
+            std::cout << "BFGS" << std::endl;
             auto [energyOld, gradOld] = computeGradients(wf, ham, sampler, currentParams);
             std::cout << "Energia Inicial: " << energyOld << std::endl;
 

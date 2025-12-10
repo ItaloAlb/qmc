@@ -49,8 +49,6 @@ void VMC::run() {
                 
                 double newStep = oldStep * (1.0 + adjustRate * (accRate - targetAcc));
 
-                if (newStep < 1e-4) newStep = 1e-4;
-
                 localSampler.setStepSize(newStep);
                 acceptedEquil = 0;
             }
