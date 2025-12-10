@@ -30,7 +30,7 @@
 //     double eps1 = 4.5;
 //     double eps2 = 4.5;
 //     double theta = 0.5;
-//     double eField = -400.0;
+//     double eField = -100.0;
 
 //     TwistedBilayerSystem moire(theta, eField, thickness);
 
@@ -42,17 +42,17 @@
 //     std::vector<double> masses = {me,  mh};
 //     std::vector<double> charges = {-1.0, +1.0};
 
-//     std::vector<double> initParams = {40, 40, 40, 40};
+//     std::vector<double> initParams = {35.8, 37.8, 33.5, 36.2};
 
 //     int nParticles = 2;
 //     int nDim = 2;
 
 //     TwistedHeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, moire, rho0, eps1, eps2);
 //     TwistedBilayerExcitonGaussianWF wf(initParams, nParticles, nDim, 
-//         281.3288049266271, 
-//         162.431358619177,
-//         281.32878651331225,
-//         162.43103456288534);
+//         324.8537752460106, 
+//         275.7926272419918,
+//         324.84973392640273,
+//         277.110522144819);
 
 
 //     std::random_device rd;
@@ -60,11 +60,10 @@
     
 //     Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
 
-//     JastrowBFGSOptimizer optVariance(10.0, 50, 1e5);
+//     JastrowBFGSOptimizer optVariance(0.1, 50, 1e5);
 //     optVariance.optimize(wf, hamiltonian, optimizerSampler);
 
 //     std::vector<double> params = wf.getParameters();
-//     std::cout << std::fixed << std::setprecision(8);
 //     std::cout << "Parametros Otimizados: [" 
 //               << params[0] << ", "
 //               << params[1] << ", "
@@ -82,7 +81,7 @@
 
 
 //     std::cout << "--- Rodando DMC ---\n";
-//     double deltaTau = 0.01;
+//     double deltaTau = 0.1;
 //     bool useFixedNode = false;
 //     bool useMaxBranch = true;
 
@@ -91,6 +90,78 @@
 
 //     return 0;
 // }
+
+int main() {
+    std::cout << "=======================\n";
+    std::cout << "   Moiré exciton (X)   \n";
+    std::cout << "=======================\n";
+
+    double thickness = 6.15;
+    double alpha = 1.5;
+    double eps = 14.0;
+    double eps1 = 4.5;
+    double eps2 = 4.5;
+    double theta = 0.5;
+    double eField = -50.0;
+
+    TwistedBilayerSystem moire(theta, eField, thickness);
+
+    double rho0 = alpha * 2 * thickness * eps / (eps1 + eps2) / Constants::a0;
+
+    double me = 0.43;
+    double mh = 0.35;
+
+    std::vector<double> masses = {me,  mh};
+    std::vector<double> charges = {-1.0, +1.0};
+
+    std::vector<double> initParams = {40.2, 40.2, 37.5, 37.5};
+
+    int nParticles = 2;
+    int nDim = 2;
+
+    TwistedHeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, moire, rho0, eps1, eps2);
+    TwistedBilayerExcitonGaussianWF wf(initParams, nParticles, nDim, 
+        243.70652695413165, 
+        140.90486103351043,
+        243.6684947401863,
+        140.77958422241366);
+
+
+    std::random_device rd;
+    unsigned int randomSeed = rd();
+    
+    Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
+
+    JastrowBFGSOptimizer optVariance(0.1, 50, 1e5);
+    optVariance.optimize(wf, hamiltonian, optimizerSampler);
+
+    std::vector<double> params = wf.getParameters();
+    std::cout << "Parametros Otimizados: [" 
+              << params[0] << ", "
+              << params[1] << ", "
+              << params[2] << ", "
+              << params[3] << "]\n\n";
+    
+    VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
+    vmc.run();
+
+    std::cout << "Energy: "             << vmc.result.energy             << "\n";
+    std::cout << "Variance: "           << vmc.result.variance           << "\n";
+    std::cout << "StdError: "           << vmc.result.stdError           << "\n";
+    std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
+    std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
+
+
+    std::cout << "--- Rodando DMC ---\n";
+    double deltaTau = 0.1;
+    bool useFixedNode = false;
+    bool useMaxBranch = true;
+
+    DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
+    dmc.run();
+
+    return 0;
+}
 
 
 // int main() {
@@ -394,83 +465,83 @@
 //     return 0;
 // }
 
-int main() {
-    std::cout << "=======================\n";
-    std::cout << "   Moiré exciton (X)   \n";
-    std::cout << "=======================\n";
+// int main() {
+//     std::cout << "=======================\n";
+//     std::cout << "   Moiré exciton (X)   \n";
+//     std::cout << "=======================\n";
 
-    double thickness = 6.15;
-    double alpha = 1.5;
-    double eps = 14.0;
-    double eps1 = 4.5;
-    double eps2 = 4.5;
-    double theta = 0.5;
-    double eField = -400.0;
+//     double thickness = 6.15;
+//     double alpha = 1.5;
+//     double eps = 14.0;
+//     double eps1 = 4.5;
+//     double eps2 = 4.5;
+//     double theta = 0.5;
+//     double eField = -300.0;
 
-    TwistedBilayerSystem moire(theta, eField, thickness);
+//     TwistedBilayerSystem moire(theta, eField, thickness);
 
-    double rho0 = alpha * 2 * thickness * eps / (eps1 + eps2) / Constants::a0;
+//     double rho0 = alpha * 2 * thickness * eps / (eps1 + eps2) / Constants::a0;
 
-    double me = 0.43;
-    double mh = 0.35;
+//     double me = 0.43;
+//     double mh = 0.35;
 
-    std::vector<double> masses = {me,  mh};
-    std::vector<double> charges = {-1.0, +1.0};
+//     std::vector<double> masses = {me,  mh};
+//     std::vector<double> charges = {-1.0, +1.0};
 
-    double c1 = masses[0] * masses[2] / 2 / (masses[0] + masses[2]);
-    double c4 = - masses[0] / 4;
+//     double c1 = masses[0] * masses[2] / 2 / (masses[0] + masses[2]);
+//     double c4 = - masses[0] / 4;
 
-    std::vector<double> initParams = {c1, 0.1, 0.1, 0.1, 0.1, 0.1};
+//     std::vector<double> initParams = {c1, 0.1, 0.1, 0.1, 0.1, 0.1};
 
-    std::vector<double> optParams = {-2.3026, -3.84062, -0.558838, -0.603411, 0.216823};
+//     // std::vector<double> optParams = {-2.3026, -3.84062, -0.558838, -0.603411, 0.216823};
 
-    int nParticles = 2;
-    int nDim = 2;
+//     int nParticles = 2;
+//     int nDim = 2;
 
-    TwistedHeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, moire, rho0, eps1, eps2);
-    TwistedBilayerExcitonWF wf(initParams, nParticles, nDim, moire);
+//     TwistedHeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, moire, rho0, eps1, eps2);
+//     TwistedBilayerExcitonWF wf(initParams, nParticles, nDim, moire);
 
-    wf.setParameters(optParams);
+//     // wf.setParameters(optParams);
 
-    std::random_device rd;
-    unsigned int randomSeed = rd();
+//     std::random_device rd;
+//     unsigned int randomSeed = rd();
     
-    Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
+//     Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
 
-    // JastrowBFGSOptimizer optVariance(0.1, 50, 1e5);
-    // optVariance.optimize(wf, hamiltonian, optimizerSampler);
+//     JastrowBFGSOptimizer optVariance(0.3, 50, 1e5);
+//     optVariance.optimize(wf, hamiltonian, optimizerSampler);
 
 
-    // std::vector<double> params = wf.getParameters();
-    // std::cout << "Parametros Otimizados: [" 
-    //           << params[0] << ", "
-    //           << params[1] << ", "
-    //           << params[2] << ", "
-    //           << params[3] << ", "
-    //           << params[4] << "]\n\n";
+//     std::vector<double> params = wf.getParameters();
+//     std::cout << "Parametros Otimizados: [" 
+//               << params[0] << ", "
+//               << params[1] << ", "
+//               << params[2] << ", "
+//               << params[3] << ", "
+//               << params[4] << "]\n\n";
 
-    std::cout << "--- Rodando VMC ---\n";
+//     std::cout << "--- Rodando VMC ---\n";
     
-    VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
-    vmc.run();
+//     VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
+//     vmc.run();
 
-    std::cout << "Energy: "             << vmc.result.energy             << "\n";
-    std::cout << "Variance: "           << vmc.result.variance           << "\n";
-    std::cout << "StdError: "           << vmc.result.stdError           << "\n";
-    std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
-    std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
+//     std::cout << "Energy: "             << vmc.result.energy             << "\n";
+//     std::cout << "Variance: "           << vmc.result.variance           << "\n";
+//     std::cout << "StdError: "           << vmc.result.stdError           << "\n";
+//     std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
+//     std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
 
 
-    std::cout << "--- Rodando DMC ---\n";
-    double deltaTau = 0.01;
-    bool useFixedNode = false;
-    bool useMaxBranch = true;
+//     std::cout << "--- Rodando DMC ---\n";
+//     double deltaTau = 0.1;
+//     bool useFixedNode = false;
+//     bool useMaxBranch = true;
 
-    DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
-    dmc.run();
+//     DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
+//     dmc.run();
 
-    return 0;
-}
+//     return 0;
+// }
 
 // int main() {
 //     std::cout << "==============\n";
