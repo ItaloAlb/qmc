@@ -98,18 +98,79 @@ namespace Utils {
 
     inline double dot(const std::vector<double>& a, const std::vector<double>& b) {
         double sum = 0.0;
-        for (size_t i = 0; i < a.size(); ++i) sum += a[i] * b[i];
+        for (int i = 0; i < a.size(); ++i) sum += a[i] * b[i];
         return sum;
     }
 
     inline std::vector<double> matVecMul(const std::vector<std::vector<double>>& M, const std::vector<double>& v) {
         std::vector<double> res(v.size(), 0.0);
-        for (size_t i = 0; i < M.size(); ++i) {
-            for (size_t j = 0; j < M[i].size(); ++j) {
+        for (int i = 0; i < M.size(); ++i) {
+            for (int j = 0; j < M[i].size(); ++j) {
                 res[i] += M[i][j] * v[j];
             }
         }
         return res;
+    }
+
+    inline std::vector<double> invertMatrix(const std::vector<double>& M) {
+        int totalSize = M.size();
+        int dim = static_cast<int>(std::sqrt(totalSize));
+
+        if (dim * dim != totalSize) {
+            throw std::invalid_argument("O tamanho do vetor de entrada deve ser um quadrado perfeito (matriz quadrada).");
+        }
+
+        std::vector<double> temp = M;
+        std::vector<double> inv(totalSize, 0.0);
+        for (int i = 0; i < dim; ++i) {
+            inv[i * dim + i] = 1.0;
+        }
+
+        const double EPSILON = 1e-12;
+
+        for (int i = 0; i < dim; ++i) {
+            
+            double pivotValue = temp[i * dim + i];
+            int pivotRow = i;
+
+            for (int k = i + 1; k < dim; ++k) {
+                if (std::abs(temp[k * dim + i]) > std::abs(pivotValue)) {
+                    pivotValue = temp[k * dim + i];
+                    pivotRow = k;
+                }
+            }
+
+            if (pivotRow != i) {
+                for (int j = 0; j < dim; ++j) {
+                    std::swap(temp[i * dim + j], temp[pivotRow * dim + j]);
+                    std::swap(inv[i * dim + j],  inv[pivotRow * dim + j]);
+                }
+            }
+            
+            pivotValue = temp[i * dim + i]; 
+
+            if (std::abs(pivotValue) < EPSILON) {
+                throw std::runtime_error("A matriz não é invertível.");
+            }
+
+            double invPivot = 1.0 / pivotValue;
+            for (int j = 0; j < dim; ++j) {
+                temp[i * dim + j] *= invPivot;
+                inv[i * dim + j]  *= invPivot;
+            }
+
+            for (int k = 0; k < dim; ++k) {
+                if (k != i) {
+                    double factor = temp[k * dim + i];
+                    for (int j = 0; j < dim; ++j) {
+                        temp[k * dim + j] -= factor * temp[i * dim + j];
+                        inv[k * dim + j]  -= factor * inv[i * dim + j];
+                    }
+                }
+            }
+        }
+
+        return inv;
     }
 
     inline double stvh0(double x) {

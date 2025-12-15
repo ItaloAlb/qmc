@@ -83,7 +83,7 @@ std::vector<double> WaveFunction::parameterGradient(const double* position) {
     
     double eps = Constants::FINITE_DIFFERENCE_STEP; 
 
-    for (size_t i = 0; i < optParams.size(); ++i) {
+    for (int i = 0; i < optParams.size(); ++i) {
         double originalVal = optParams[i];
         optParams[i] = originalVal + eps;
         this->setParameters(optParams);

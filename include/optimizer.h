@@ -134,7 +134,7 @@ private:
                 for (auto& val : p) val = -val;
 
                 std::vector<double> newParams = currentParams;
-                for (size_t i = 0; i < nParams; ++i) {
+                for (int i = 0; i < nParams; ++i) {
                     newParams[i] += learningRate * p[i];
                 }
                 wf.setParameters(newParams);
@@ -142,7 +142,7 @@ private:
                 auto [energyNew, gradNew] = computeGradients(wf, ham, sampler, newParams);
 
                 std::vector<double> s(nParams), y(nParams);
-                for (size_t i = 0; i < nParams; ++i) {
+                for (int i = 0; i < nParams; ++i) {
                     s[i] = newParams[i] - currentParams[i];
                     y[i] = gradNew[i] - gradOld[i];
                 }

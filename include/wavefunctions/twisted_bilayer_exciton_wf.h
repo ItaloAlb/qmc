@@ -16,18 +16,16 @@ public:
     }
 
     void setParameters(const std::vector<double>& newParams) override {
-        if (newParams.size() == 5) {
+        if (newParams.size() == 4) {
             double p_c2 = newParams[0];
             double p_c3 = newParams[1];
             double p_c4 = newParams[2];
             double p_c5 = newParams[3];
-            double p_c6 = newParams[4];
 
             params[1] = std::exp(p_c2);
             params[2] = std::exp(p_c3);
             params[3] = p_c4;
             params[4] = p_c5;
-            params[5] = p_c6;
         }
     }
 
@@ -38,7 +36,6 @@ public:
             std::log(params[2]),
             params[3], 
             params[4], 
-            params[5]
         };
     }
 
@@ -61,7 +58,6 @@ public:
 
         double c4 = params[3];
         double c5 = params[4];
-        double c6 = params[5];
 
         double K1_dot_re = moire.k1x * xe + moire.k1y * ye;
         double K2_dot_re = moire.k2x * xe + moire.k2y * ye;
@@ -80,7 +76,7 @@ public:
 
         double de = moire.d0 + moire.d1 * f1eSquared + moire.d2 * f2eSquared;
 
-        double Ve = c4 * (f1eSquared + f2eSquared) + c6 * moire.eField * de * 0.5;
+        double Ve = c4 * (f1eSquared + f2eSquared) + moire.eField * de * 0.5;
 
         double K1_dot_rh = moire.k1x * xh + moire.k1y * yh;
         double K2_dot_rh = moire.k2x * xh + moire.k2y * yh;
@@ -99,7 +95,7 @@ public:
 
         double dh = moire.d0 + moire.d1 * f1hSquared + moire.d2 * f2hSquared;
 
-        double Vh = c5 * (f1hSquared + f2hSquared) + c6 * moire.eField * dh * 0.5;
+        double Vh = c5 * (f1hSquared + f2hSquared) + moire.eField * dh * 0.5;
         
         return Ve + Vh;
     }

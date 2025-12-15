@@ -2,6 +2,7 @@
 #define HAMILTONIAN_H
 
 #include "wavefunction.h"
+#include "periodic_boundary.h"
 
 class Hamiltonian {
     protected:
