@@ -10,16 +10,22 @@ public:
         return new HydrogenWF(*this);
     }
     
-    double trialWaveFunction(const double* position) const override {
+    double trialWaveFunction(const double* position, const PeriodicBoundary* pbc = nullptr) const override {
         double alpha = params[0]; 
         
         double r2 = 0.0;
 
-        for(int k = 0; k < dim; k++) {
-            double dist = position[k] - position[k + dim];
-            r2 += dist * dist;
+        double r;
+        if (pbc) {
+            r = pbc->getDistance(position, position + dim);
+        } else {
+            double r2 = 0.0;
+            for (int k = 0; k < dim; ++k) {
+                double d = position[k] - position[k + dim];
+                r2 += d * d;
+            }
+            r = std::sqrt(r2);
         }
-        double r = std::sqrt(r2);
         return std::exp(-alpha * r);
     }
 };

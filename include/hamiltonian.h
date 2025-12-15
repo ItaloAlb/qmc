@@ -16,9 +16,9 @@ class Hamiltonian {
         Hamiltonian(int nParticles, int dim, std::vector<double> masses, std::vector<double> charges);
         virtual ~Hamiltonian() = default;
 
-        virtual double getPotential(const double* position) const = 0;
+        virtual double getPotential(const double* position, const PeriodicBoundary* pbc = nullptr) const = 0;
 
-        double getLocalEnergy(const WaveFunction& wf, const double* position) const;
+        double getLocalEnergy(const WaveFunction& wf, const double* position, const PeriodicBoundary* pbc = nullptr) const;
 
         int getNParticles() const { return nParticles; };
 

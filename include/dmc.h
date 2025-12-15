@@ -15,6 +15,7 @@
 #include "constants.h"
 #include "hamiltonian.h"
 #include "wavefunction.h"
+#include "periodic_boundary.h"
 #include "utils.h"
 
 
@@ -35,6 +36,7 @@ class DMC {
     private:
         const Hamiltonian& hamiltonian;
         WaveFunction& wf;
+        const PeriodicBoundary* pbc;
 
         int nWalkers, nParticles, dim, stride, blockTotalMoves, blockAcceptedMoves;
         double deltaTau, invDeltaTau, referenceEnergy, instEnergy, meanEnergy;
@@ -57,7 +59,8 @@ class DMC {
     public: 
         DMC(const Hamiltonian& hamiltonian, 
             WaveFunction& wf, 
-            double deltaTau, 
+            double deltaTau,
+            const PeriodicBoundary* pbc = nullptr,
             int nWalkers = Constants::N_WALKERS_TARGET,
             bool isFixedNode = false,
             bool isMaxBranch = false);

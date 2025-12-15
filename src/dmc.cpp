@@ -4,12 +4,14 @@ using namespace Utils;
 
 DMC::DMC(const Hamiltonian& hamiltonian_, 
         WaveFunction& wf_, 
-         double deltaTau_, 
-         int nWalkers_, 
-         bool isFixedNode_, 
-         bool isMaxBranch_)
+        double deltaTau_, 
+        const PeriodicBoundary* pbc_,
+        int nWalkers_, 
+        bool isFixedNode_, 
+        bool isMaxBranch_)
     : hamiltonian(hamiltonian_),
       wf(wf_),
+      pbc(pbc_),
       deltaTau(deltaTau_),
       nWalkers(nWalkers_),
       isFixedNode(isFixedNode_),
@@ -74,13 +76,19 @@ void DMC::timeStep(){
                 newPosition[j] = position[j] + chi + deltaTau * drift[j];
             }
 
+            if (pbc) {
+                for (int p = 0; p < nParticles; ++p) {
+                    pbc->applyPeriodicBoundary(&newPosition[p * dim]);
+                }
+            }
+
             // Calculate the trial wave function at the old and new positions
-            double oldPsi = wf.trialWaveFunction(&positions[i * stride]);
-            double newPsi = wf.trialWaveFunction(&newPosition[0]);
+            double oldPsi = wf.trialWaveFunction(&positions[i * stride], pbc);
+            double newPsi = wf.trialWaveFunction(&newPosition[0], pbc);
 
             // Calculate the local energy at the old and new positions
-            double oldLocalEnergy = hamiltonian.getLocalEnergy(wf, &positions[i * stride]); 
-            double newLocalEnergy = hamiltonian.getLocalEnergy(wf, &newPosition[0]);
+            double oldLocalEnergy = hamiltonian.getLocalEnergy(wf, &positions[i * stride], pbc); 
+            double newLocalEnergy = hamiltonian.getLocalEnergy(wf, &newPosition[0], pbc);
             
             // Check if the proposed move crosses a nodal surface (where Psi changes sign)
             // Moves that cross nodal surfaces are typically rejected in fixed-node DMC
@@ -208,10 +216,20 @@ double DMC::driftGreenFunction(const double* newPosition,
     
     double exparg = 0.0;
     double prefactor = 1.0;
+    std::vector<double> disp_min(stride);
+    
+    if (pbc) {
+        pbc->getDisplacement(newPosition, oldPosition, disp_min.data());
+    } else {
+        for (int j = 0; j < stride; j++) {
+            disp_min[j] = newPosition[j] - oldPosition[j];
+        }
+    }
 
     for (int j = 0; j < stride; j++) {
         double m = hamiltonian.getMasses()[j / dim];
-        double diff = newPosition[j] - oldPosition[j] - deltaTau * oldDrift[j];
+        
+        double diff = disp_min[j] - deltaTau * oldDrift[j];
 
         exparg -= (m * diff * diff) / (2.0 * deltaTau);
 

@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "constants.h"
+#include "periodic_boundary.h"
 
 
 class WaveFunction {
@@ -33,7 +34,7 @@ class WaveFunction {
 
         std::vector<double> parameterGradient(const double* position);
 
-        virtual double trialWaveFunction(const double* position) const = 0;
+        virtual double trialWaveFunction(const double* position, const PeriodicBoundary* pbc = nullptr) const = 0;
 
         int getNParticles() const { return nParticles; };
 
