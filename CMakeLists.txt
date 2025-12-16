@@ -34,6 +34,8 @@ set(SOURCES
     src/dmc.cpp
     src/wavefunction.cpp
     src/hamiltonian.cpp
+    src/periodic_boundary.cpp
+    src/utils.cpp
 )
 
 # Adiciona o executável ao projeto, informando quais arquivos-fonte o compõem.
