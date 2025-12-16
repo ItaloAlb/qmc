@@ -10,7 +10,7 @@ public:
         return new HydrogenWF(*this);
     }
     
-    double trialWaveFunction(const double* position, const PeriodicBoundary* pbc = nullptr) const override {
+    double trialWaveFunction(const double* position) const override {
         double alpha = params[0]; 
         
         double r2 = 0.0;

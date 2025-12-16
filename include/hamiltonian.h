@@ -8,17 +8,19 @@ class Hamiltonian {
     protected:
         int nParticles, dim, stride;
 
+        const PeriodicBoundary* pbc;
+
         std::vector<double> masses;
 
         std::vector<double> charges;
 
     public:
-        Hamiltonian(int nParticles, int dim, std::vector<double> masses, std::vector<double> charges);
+        Hamiltonian(int nParticles, int dim, std::vector<double> masses, std::vector<double> charges, const PeriodicBoundary* pbc = nullptr);
         virtual ~Hamiltonian() = default;
 
-        virtual double getPotential(const double* position, const PeriodicBoundary* pbc = nullptr) const = 0;
+        virtual double getPotential(const double* position) const = 0;
 
-        double getLocalEnergy(const WaveFunction& wf, const double* position, const PeriodicBoundary* pbc = nullptr) const;
+        double getLocalEnergy(const WaveFunction& wf, const double* position) const;
 
         int getNParticles() const { return nParticles; };
 

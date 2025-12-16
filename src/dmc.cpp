@@ -83,12 +83,12 @@ void DMC::timeStep(){
             }
 
             // Calculate the trial wave function at the old and new positions
-            double oldPsi = wf.trialWaveFunction(&positions[i * stride], pbc);
-            double newPsi = wf.trialWaveFunction(&newPosition[0], pbc);
+            double oldPsi = wf.trialWaveFunction(&positions[i * stride]);
+            double newPsi = wf.trialWaveFunction(&newPosition[0]);
 
             // Calculate the local energy at the old and new positions
-            double oldLocalEnergy = hamiltonian.getLocalEnergy(wf, &positions[i * stride], pbc); 
-            double newLocalEnergy = hamiltonian.getLocalEnergy(wf, &newPosition[0], pbc);
+            double oldLocalEnergy = hamiltonian.getLocalEnergy(wf, &positions[i * stride]); 
+            double newLocalEnergy = hamiltonian.getLocalEnergy(wf, &newPosition[0]);
             
             // Check if the proposed move crosses a nodal surface (where Psi changes sign)
             // Moves that cross nodal surfaces are typically rejected in fixed-node DMC

@@ -5,18 +5,22 @@
 #include <cmath>
 
 #include "constants.h"
-#include "periodic_boundary.h"
 
+class PeriodicBoundary;
 
 class WaveFunction {
     protected:
         int nParticles, dim, stride;
 
+        const PeriodicBoundary* pbc;
+        
+
         std::vector<double> params;
-    public: 
+    public:
         WaveFunction(std::vector<double> params,
             int nParticles = Constants::DEFAULT_N_PARTICLE, 
-            int dim = Constants::DEFAULT_N_DIM);
+            int dim = Constants::DEFAULT_N_DIM,
+            const PeriodicBoundary* pbc = nullptr);
 
         virtual WaveFunction* clone() const = 0;
 
@@ -34,7 +38,7 @@ class WaveFunction {
 
         std::vector<double> parameterGradient(const double* position);
 
-        virtual double trialWaveFunction(const double* position, const PeriodicBoundary* pbc = nullptr) const = 0;
+        virtual double trialWaveFunction(const double* position) const = 0;
 
         int getNParticles() const { return nParticles; };
 

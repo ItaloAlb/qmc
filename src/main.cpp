@@ -4,6 +4,7 @@
 #include "optimizer.h"
 #include "constants.h"
 #include "utils.h"
+#include "periodic_boundary.h"
 
 #include "wavefunctions/hydrogen_wf.h"
 #include "wavefunctions/helium_wf.h"
@@ -537,7 +538,9 @@ int main() {
     bool useFixedNode = false;
     bool useMaxBranch = true;
 
-    DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
+    const PeriodicBoundary* pbc = nullptr;
+
+    DMC dmc(hamiltonian, wf, deltaTau, pbc, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
     dmc.run();
 
     return 0;

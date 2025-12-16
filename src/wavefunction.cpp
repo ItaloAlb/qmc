@@ -1,9 +1,11 @@
 #include "wavefunction.h"
+#include "periodic_boundary.h"
 
-WaveFunction::WaveFunction(std::vector<double>params_, int nParticles_, int dim_)
+WaveFunction::WaveFunction(std::vector<double>params_, int nParticles_, int dim_, const PeriodicBoundary* pbc_)
     : nParticles(nParticles_),
       dim(dim_),
-      params(params_)
+      params(params_),
+      pbc(pbc_)
 {
     stride = nParticles_ * dim_;
 }

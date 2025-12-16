@@ -6,8 +6,9 @@
 #include <cmath>
 #include <functional>
 
-#include "wavefunction.h"
 #include "constants.h"
+
+class WaveFunction;
 
 using namespace Constants;
 
@@ -54,55 +55,30 @@ struct TwistedBilayerSystem {
     }
 };
 
-
 namespace Utils {
 
-    class Metropolis {
-        private:
-            std::mt19937 rng;
-            double stepSize;
-            std::vector<double> positionBuffer; 
+class Metropolis {
+private:
+    std::mt19937 rng;
+    double stepSize;
+    std::vector<double> positionBuffer;
 
-        public:
-            Metropolis(int seed, double step, int nParticles, int dim) 
-                : rng(seed), stepSize(step) {
-                positionBuffer.resize(nParticles * dim);
-            }
+public:
+    Metropolis(int seed, double step, int nParticles, int dim);
 
-            bool step(WaveFunction& wf, std::vector<double>& currentR, double& currentPsi) {
-                
-                positionBuffer = currentR; 
+    bool step(WaveFunction& wf, std::vector<double>& currentR, double& currentPsi);
 
-                std::uniform_real_distribution<double> dist(-stepSize, stepSize);
-                std::uniform_real_distribution<double> uniform(0.0, 1.0);
+    double getStepSize() const { return stepSize; }
+    void setStepSize(double s) { stepSize = s; }
+};
 
-                for (double& position : positionBuffer) {
-                    position += dist(rng);
-                }
-
-                double proposedPsi = wf.trialWaveFunction(positionBuffer.data());
-
-                double w = (proposedPsi * proposedPsi) / (currentPsi * currentPsi);
-
-                if (w >= uniform(rng)) {
-                    currentR = positionBuffer;
-                    currentPsi = proposedPsi;
-                    return true;
-                }
-                return false;
-            }
-            
-            double getStepSize() const { return stepSize; }
-            void setStepSize(double s) { stepSize = s; }
-        };
-
-    inline double dot(const std::vector<double>& a, const std::vector<double>& b) {
+inline double dot(const std::vector<double>& a, const std::vector<double>& b) {
         double sum = 0.0;
         for (int i = 0; i < a.size(); ++i) sum += a[i] * b[i];
         return sum;
     }
 
-    inline std::vector<double> matVecMul(const std::vector<std::vector<double>>& M, const std::vector<double>& v) {
+inline std::vector<double> matVecMul(const std::vector<std::vector<double>>& M, const std::vector<double>& v) {
         std::vector<double> res(v.size(), 0.0);
         for (int i = 0; i < M.size(); ++i) {
             for (int j = 0; j < M[i].size(); ++j) {
@@ -112,13 +88,9 @@ namespace Utils {
         return res;
     }
 
-    inline std::vector<double> invertMatrix(const std::vector<double>& M) {
+inline std::vector<double> invertMatrix(const std::vector<double>& M) {
         int totalSize = M.size();
         int dim = static_cast<int>(std::sqrt(totalSize));
-
-        if (dim * dim != totalSize) {
-            throw std::invalid_argument("O tamanho do vetor de entrada deve ser um quadrado perfeito (matriz quadrada).");
-        }
 
         std::vector<double> temp = M;
         std::vector<double> inv(totalSize, 0.0);
@@ -149,10 +121,6 @@ namespace Utils {
             
             pivotValue = temp[i * dim + i]; 
 
-            if (std::abs(pivotValue) < EPSILON) {
-                throw std::runtime_error("A matriz não é invertível.");
-            }
-
             double invPivot = 1.0 / pivotValue;
             for (int j = 0; j < dim; ++j) {
                 temp[i * dim + j] *= invPivot;
@@ -173,7 +141,7 @@ namespace Utils {
         return inv;
     }
 
-    inline double stvh0(double x) {
+inline double stvh0(double x) {
         double s = 1.0;
         double r = 1.0;
         double sh0;
@@ -214,7 +182,7 @@ namespace Utils {
         return sh0;
     }
 
-    inline double jy0b(double x) {
+inline double jy0b(double x) {
         if (x == 0.0) {
             return -1.0e300; 
         } else if (x <= 4.0) {
@@ -247,7 +215,7 @@ namespace Utils {
             return by0;
         }
     }
-}
+
+} // namespace Utils
 
 #endif
-

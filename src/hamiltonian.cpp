@@ -1,13 +1,13 @@
 #include "hamiltonian.h"
 
-Hamiltonian::Hamiltonian(int nParticles_, int dim_, std::vector<double> masses_, std::vector<double> charges_) 
-    : nParticles(nParticles_), dim(dim_), masses(masses_), charges(charges_)
+Hamiltonian::Hamiltonian(int nParticles_, int dim_, std::vector<double> masses_, std::vector<double> charges_, const PeriodicBoundary* pbc_) 
+    : nParticles(nParticles_), dim(dim_), masses(masses_), charges(charges_), pbc(pbc_)
 {
     stride = nParticles_ * dim_;
 }
 
-double Hamiltonian::getLocalEnergy(const WaveFunction& wf, const double* position, const PeriodicBoundary* pbc) const {
-    double potentialEnergy = getPotential(position, pbc);
+double Hamiltonian::getLocalEnergy(const WaveFunction& wf, const double* position) const {
+    double potentialEnergy = getPotential(position);
 
     std::vector<double> laplacian = wf.getLaplacian(position);
 
