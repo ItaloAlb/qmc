@@ -477,7 +477,7 @@ int main() {
     double eps1 = 4.5;
     double eps2 = 4.5;
     double theta = 0.5;
-    double eField = -0.0;
+    double eField = -200.0;
 
     TwistedBilayerSystem moire(theta, eField, thickness);
 
@@ -492,15 +492,15 @@ int main() {
     double c1 = masses[0] * masses[2] / 2 / (masses[0] + masses[2]);
     double c4 = - masses[0] / 4;
 
-    std::vector<double> initParams = {c1, 0.1, 0.1, 0.1, 0.1};
+    std::vector<double> initParams = {c1, 0.1, 0.1};
 
     // std::vector<double> optParams = {-2.3026, -3.84062, -0.558838, -0.603411, 0.216823};
 
     int nParticles = 2;
     int nDim = 2;
 
-    TwistedHeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, moire, rho0, eps1, eps2);
-    TwistedBilayerExcitonWF wf(initParams, nParticles, nDim, moire);
+    HeterobilayerHamiltonian hamiltonian(nParticles, nDim, masses, charges, thickness, rho0, eps1, eps2);
+    BilayerExcitonWF wf(initParams, nParticles, nDim, thickness);
 
     // wf.setParameters(optParams);
 
