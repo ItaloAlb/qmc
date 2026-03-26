@@ -27,21 +27,21 @@ int main() {
     std::cout << "   Exciton-Exciton Interaction   \n";
     std::cout << "=================================\n";
 
+    const PeriodicBoundary* pbc = nullptr;
 
     double me = 1.0;
     double mh = 1.0;
     double mu = (me * mh) / (me + mh);
-    double d = 0.5 * me / mu;
-    double R = 0.0 * me / mu;
+    double d = 1.0 * me / mu;
+    double R = 1.0 * me / mu;
 
     std::vector<double> masses = {mu,  mu, 0.35, 0.35};
     std::vector<double> charges = {-1.0, -1.0, 1.0, 1.0};
 
     double c1 = me * mh / 2 / (me + mh);
     double c4 = - me / 4;
-    std::vector<double> alpha = {c1, 0.1, 0.1, c4, 0.1};
 
-    // std::vector<double> params = {-0.0621872, -3.85307, -2.40632};
+    std::vector<double> alpha = {1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
 
     int nParticles = 2;
     int nDim = 2;
@@ -85,11 +85,11 @@ int main() {
 
 
     std::cout << "--- Rodando DMC ---\n";
-    double deltaTau = 0.01;
+    double deltaTau = 0.1;
     bool useFixedNode = true;
-    bool useMaxBranch = false;
+    bool useMaxBranch = true;
 
-    DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
+    DMC dmc(hamiltonian, wf, deltaTau, pbc, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
     dmc.run();
 
     return 0;
@@ -99,6 +99,8 @@ int main() {
 //     std::cout << "=======================\n";
 //     std::cout << "   Moiré exciton (X)   \n";
 //     std::cout << "=======================\n";
+
+//     const PeriodicBoundary* pbc = nullptr;
 
 //     double thickness = 6.15;
 //     double alpha = 1.5;
@@ -161,7 +163,7 @@ int main() {
 //     bool useFixedNode = false;
 //     bool useMaxBranch = true;
 
-//     DMC dmc(hamiltonian, wf, deltaTau, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
+//     DMC dmc(hamiltonian, wf, deltaTau, pbc, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
 //     dmc.run();
 
 //     return 0;

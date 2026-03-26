@@ -20,45 +20,86 @@ public:
         return new ExcitonExcitonWF(*this);
     }
 
-    void setParameters(const std::vector<double>& newParams) override {
-        if (newParams.size() == 3) {
-            double p_c2 = newParams[0];
-            double p_c3 = newParams[1];
-            double p_c5 = newParams[2];
+void setParameters(const std::vector<double>& newParams) override {
+        if (newParams.size() == 9) {
+            // c1, c3 e c5 podem assumir qualquer valor real
+            params[0] = newParams[0]; 
+            params[2] = newParams[2]; 
+            params[4] = newParams[4]; 
 
-            params[1] = std::exp(p_c2);
-            params[2] = std::exp(p_c3);
-            params[4] = std::exp(p_c5);
+            // c2, c4, c7 e c9 devem ser estritamente positivos (> 0)
+            params[1] = std::exp(newParams[1]); 
+            params[3] = std::exp(newParams[3]); 
+            params[6] = std::exp(newParams[6]); 
+            params[8] = std::exp(newParams[8]); 
+
+            // c6 e c8 devem ser estritamente negativos (< 0)
+            // Usamos -exp() para garantir valores sempre negativos
+            params[5] = -std::exp(newParams[5]); 
+            params[7] = -std::exp(newParams[7]); 
         }
     }
 
     std::vector<double> getParameters() const override {
         return { 
-            std::log(params[1]),
-            std::log(params[2]),
-            std::log(params[4])
+            params[0],              // c1
+            std::log(params[1]),    // log(c2)
+            params[2],              // c3
+            std::log(params[3]),    // log(c4)
+            params[4],              // c5
+            std::log(-params[5]),   // log(-c6) para reverter o sinal
+            std::log(params[6]),    // log(c7)
+            std::log(-params[7]),   // log(-c8) para reverter o sinal
+            std::log(params[8])     // log(c9)
         };
     }
 
-    double jastrowEH(double r, double r2) const {
+    double jastrowEE(double r) const {
         double c1 = params[0];
         double c2 = params[1];
+        return std::exp((c1 * r) / (1.0 + c2 * r));
+    }
+
+    double jastrowHH(double r) const {
         double c3 = params[2];
-
-        double exp = std::exp(-c2 * r2);
-        double term1 = c1 * r2 * std::log(r) * exp;
-        double term2 = c3 * r * (1.0 - exp);
-        return std::exp(term1 - term2);
-    }
-
-    double jastrowEE(double r, double r2) const {
         double c4 = params[3];
-        double c5 = params[4];
-
-        double exparg = c4 * r2 * std::log(r) * std::exp(-c5 * r2);
-        return std::exp(exparg);
+        return std::exp((c3 * r) / (1.0 + c4 * r));
     }
-    
+
+    // New Symmetrized Electron-Hole Jastrow
+    // Takes r1a (e1-h1), r2b (e2-h2), r2a (e2-h1), r1b (e1-h2) and their squares
+    double jastrowEH(double r1a, double r2_1a, 
+                               double r2b, double r2_2b, 
+                               double r2a, double r2_2a, 
+                               double r1b, double r2_1b) const {
+        
+        double c5 = params[4];
+        double c6 = params[5];
+        double c7 = params[6];
+        double c8 = params[7];
+        double c9 = params[8];
+
+        // A quick helper lambda to calculate the individual fractional terms cleanly
+        auto calc_term = [c5](double r, double r2, double cx, double cy) {
+            return (c5 * r + cx * r2) / (1.0 + cy * r);
+        };
+
+        // First exciton pairing configuration
+        double exp1_args = calc_term(r1a, r2_1a, c6, c7) + 
+                           calc_term(r2b, r2_2b, c6, c7) + 
+                           calc_term(r2a, r2_2a, c8, c9) + 
+                           calc_term(r1b, r2_1b, c8, c9);
+
+        // Second exciton pairing configuration (swapped holes)
+        double exp2_args = calc_term(r1a, r2_1a, c8, c9) + 
+                           calc_term(r2b, r2_2b, c8, c9) + 
+                           calc_term(r2a, r2_2a, c6, c7) + 
+                           calc_term(r1b, r2_1b, c6, c7);
+
+        return std::exp(exp1_args) + std::exp(exp2_args);
+    }
+
+
     double trialWaveFunction(const double* position) const override {
         std::vector<double> R(dim, 0.0);
         if (dim > 0) {
@@ -105,6 +146,10 @@ public:
         double r_e2h1 = std::sqrt(r2_e2h1 + d_sq);
         double r_e1h2 = std::sqrt(r2_e1h2 + d_sq);
 
-        return jastrowEH(r_e1h1, r2_e1h1) * jastrowEH(r_e1h2, r2_e1h2) * jastrowEH(r_e2h1, r2_e2h1) * jastrowEH(r_e2h2, r2_e2h2) * jastrowEE(r_ee,  r2_ee) * jastrowEE(r_hh,  r2_hh);
+        double psi_ee = jastrowEE(r_ee);
+        double psi_hh = jastrowHH(r_hh);
+        double psi_eh = jastrowEH(r_e1h1, r2_e1h1, r_e2h2, r2_e2h2, r_e2h1, r2_e2h1 + d_sq, r_e1h2, r2_e1h2 + d_sq);
+
+        return psi_ee * psi_hh * psi_eh;
     }
 };
