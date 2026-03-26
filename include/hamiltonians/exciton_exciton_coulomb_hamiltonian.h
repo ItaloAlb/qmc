@@ -1,11 +1,16 @@
 #include "hamiltonian.h"
 
 class ExcitonExcitonCoulombHamiltonian : public Hamiltonian {
+private:
+    double me;
+    double mh;
+    double d;
 public:
     ExcitonExcitonCoulombHamiltonian(int nParticles, int dim,
                        const std::vector<double>& masses,
-                       const std::vector<double>& charges)
-        : Hamiltonian(nParticles, dim, masses, charges) {}
+                       const std::vector<double>& charges,
+                       double me, double mh, double d)
+        : Hamiltonian(nParticles, dim, masses, charges), me(me), mh(mh), d(d) {}
 
     double getPotential(const double* position) const override {
         std::vector<double> R(dim, 0.0);
@@ -13,8 +18,7 @@ public:
             R[0] = 1.0;
         }
 
-        double me = masses[0];
-        double mh = masses[1];
+        double mu = masses[0];
 
         double r1_sq = 0.0;
         double r2_sq = 0.0;
