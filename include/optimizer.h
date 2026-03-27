@@ -133,13 +133,29 @@ private:
                 std::vector<double> p = matVecMul(H, gradOld);
                 for (auto& val : p) val = -val;
 
-                std::vector<double> newParams = currentParams;
-                for (int i = 0; i < nParams; ++i) {
-                    newParams[i] += learningRate * p[i];
-                }
-                wf.setParameters(newParams);
+                // std::vector<double> newParams = currentParams;
+                // for (int i = 0; i < nParams; ++i) {
+                //     newParams[i] += learningRate * p[i];
+                // }
+                // wf.setParameters(newParams);
 
-                auto [energyNew, gradNew] = computeGradients(wf, ham, sampler, newParams);
+                // auto [energyNew, gradNew] = computeGradients(wf, ham, sampler, newParams);
+
+                double alpha = learningRate;
+                std::vector<double> newParams = currentParams;
+                double energyNew;
+                std::vector<double> gradNew;
+
+                for (int ls = 0; ls < 10; ++ls) {
+                    newParams = currentParams;
+                    for (int i = 0; i < nParams; ++i) newParams[i] += alpha * p[i];
+                    wf.setParameters(newParams);
+                    auto [eTrial, gTrial] = computeGradients(wf, ham, sampler, newParams);
+                    energyNew = eTrial;
+                    gradNew   = gTrial;
+                    if (energyNew < energyOld) break;  // sufficient decrease found
+                    alpha *= 0.5;                       // halve step and retry
+                }
 
                 std::vector<double> s(nParams), y(nParams);
                 for (int i = 0; i < nParams; ++i) {

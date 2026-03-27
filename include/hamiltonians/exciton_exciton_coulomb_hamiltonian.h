@@ -5,18 +5,17 @@ private:
     double me;
     double mh;
     double d;
+    double R;
 public:
     ExcitonExcitonCoulombHamiltonian(int nParticles, int dim,
                        const std::vector<double>& masses,
                        const std::vector<double>& charges,
-                       double me, double mh, double d)
-        : Hamiltonian(nParticles, dim, masses, charges), me(me), mh(mh), d(d) {}
+                       double me, double mh, double d, double R)
+        : Hamiltonian(nParticles, dim, masses, charges), me(me), mh(mh), d(d), R(R) {}
 
     double getPotential(const double* position) const override {
-        std::vector<double> R(dim, 0.0);
-        if (dim > 0) {
-            R[0] = 1.0;
-        }
+        std::vector<double> r(dim, 0.0);
+        r[0] = R;
 
         double mu = masses[0];
 
@@ -30,7 +29,7 @@ public:
         for (int k = 0; k < dim; k++) {
             double r1_k = position[0 * dim + k];
             double r2_k = position[1 * dim + k];
-            double R_k = R[k];
+            double R_k = r[k];
 
             r1_sq += r1_k * r1_k;
             r2_sq += r2_k * r2_k;

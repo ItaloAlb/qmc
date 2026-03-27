@@ -32,24 +32,23 @@ int main() {
     double me = 1.0;
     double mh = 1.0;
     double mu = (me * mh) / (me + mh);
-    double d = 1.0 * me / mu;
-    double R = 1.0 * me / mu;
+    double d = 0.2 * me / mu;
+    double R = 4.0 * me / mu;
 
-    std::vector<double> masses = {mu,  mu, 0.35, 0.35};
-    std::vector<double> charges = {-1.0, -1.0, 1.0, 1.0};
-
-    double c1 = me * mh / 2 / (me + mh);
-    double c4 = - me / 4;
+    std::vector<double> masses = {mu,  mu};
+    std::vector<double> charges = {-1.0, -1.0};
 
     std::vector<double> alpha = {1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
+
+    std::vector<double> params = {3.4722, 10.4458, 13.1154, 19.7361, 0.565659, 1.34458, 6.41809, 1.34458, 6.41809};
 
     int nParticles = 2;
     int nDim = 2;
 
-    ExcitonExcitonCoulombHamiltonian hamiltonian(nParticles, nDim, masses, charges, me, mh, d);
-    ExcitonExcitonWF wf(alpha, nParticles, nDim, me, mh, d);
+    ExcitonExcitonCoulombHamiltonian hamiltonian(nParticles, nDim, masses, charges, me, mh, d, R);
+    ExcitonExcitonWF wf(alpha, nParticles, nDim, me, mh, d, R);
 
-    // wf.setParameters(params);
+    wf.setParameters(params);
 
     std::cout << "==========\n";
     std::cout << "   BFGS   \n";
@@ -68,7 +67,13 @@ int main() {
     std::cout << "Parametros Otimizados (log): [" 
               << optParams[0] << ", "
               << optParams[1] << ", "
-              << optParams[2] << "]\n\n";
+              << optParams[2] << ", "
+              << optParams[3] << ", "
+              << optParams[4] << ", "
+              << optParams[5] << ", "
+              << optParams[6] << ", "
+              << optParams[7] << ", "
+              << optParams[8] << "]\n\n";
 
 
 
@@ -85,7 +90,7 @@ int main() {
 
 
     std::cout << "--- Rodando DMC ---\n";
-    double deltaTau = 0.1;
+    double deltaTau = 0.01;
     bool useFixedNode = true;
     bool useMaxBranch = true;
 

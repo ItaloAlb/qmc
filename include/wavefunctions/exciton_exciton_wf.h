@@ -8,11 +8,12 @@ private:
     double mh;
     double mu;
     double d;
+    double R;
 
 public:
     // Updated constructor to accept me and mh for the coordinate transformation
-    ExcitonExcitonWF(const std::vector<double>& params, int nParticles, int dim, double me, double mh, double d) 
-        : WaveFunction(params, nParticles, dim), me(me), mh(mh), d(d) {
+    ExcitonExcitonWF(const std::vector<double>& params, int nParticles, int dim, double me, double mh, double d, double R) 
+        : WaveFunction(params, nParticles, dim), me(me), mh(mh), d(d), R(R) {
         mu = (me * mh) / (me + mh);
     }
 
@@ -101,10 +102,8 @@ void setParameters(const std::vector<double>& newParams) override {
 
 
     double trialWaveFunction(const double* position) const override {
-        std::vector<double> R(dim, 0.0);
-        if (dim > 0) {
-            R[0] = 1.0; 
-        }
+        std::vector<double> r(dim, 0.0);
+        r[0] = R;
 
         double r2_e1h1 = 0.0;
         double r2_e2h2 = 0.0;
@@ -118,7 +117,7 @@ void setParameters(const std::vector<double>& newParams) override {
         for(int k = 0; k < dim; k++) {
             double r1_k = position[0 * dim + k];
             double r2_k = position[1 * dim + k];
-            double R_k  = R[k];
+            double R_k  = r[k];
 
             // Intra-exciton distances (e1-h1 and e2-h2)
             r2_e1h1 += r1_k * r1_k;
@@ -139,10 +138,10 @@ void setParameters(const std::vector<double>& newParams) override {
             r2_e1h2 += d_e1h2 * d_e1h2;
         }
 
-        double r_e1h1 = std::sqrt(r2_e1h1);
-        double r_e2h2 = std::sqrt(r2_e2h2);
-        double r_ee   = std::sqrt(r2_ee + d_sq );
-        double r_hh   = std::sqrt(r2_hh + d_sq);
+        double r_e1h1 = std::sqrt(r2_e1h1 + d_sq);
+        double r_e2h2 = std::sqrt(r2_e2h2 + d_sq);
+        double r_ee   = std::sqrt(r2_ee);
+        double r_hh   = std::sqrt(r2_hh);
         double r_e2h1 = std::sqrt(r2_e2h1 + d_sq);
         double r_e1h2 = std::sqrt(r2_e1h2 + d_sq);
 

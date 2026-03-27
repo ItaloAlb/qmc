@@ -28,7 +28,7 @@ void VMC::run() {
         std::vector<double> currentPosition(nParticles * dim);
         
         std::mt19937 initGen(localSeed);
-        std::uniform_real_distribution<double> dist(-1.0, 1.0);
+        std::uniform_real_distribution<double> dist(-100.0, 100.0);
         for(auto& x : currentPosition) x = dist(initGen);
 
         double currentPsi = wf.trialWaveFunction(currentPosition.data());

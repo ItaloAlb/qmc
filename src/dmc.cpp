@@ -256,7 +256,7 @@ void DMC::initializeWalkers() {
     drifts.resize(nWalkers * stride);
     localEnergy.resize(nWalkers);
 
-    std::uniform_real_distribution<double> initDist(-1.0, +1.0);
+    std::uniform_real_distribution<double> initDist(-100.0, +100.0);
 
     #pragma omp parallel
     {
