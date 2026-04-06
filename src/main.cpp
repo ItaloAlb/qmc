@@ -15,90 +15,202 @@
 #include "wavefunctions/bilayer_exciton_wf.h"
 #include "wavefunctions/twisted_bilayer_exciton_gaussian_wf.h"
 #include "wavefunctions/exciton_exciton_wf.h"
+#include "wavefunctions/exciton_exciton_non_interact_wf.h"
 
 #include "hamiltonians/coulomb_hamiltonian.h"
 #include "hamiltonians/efficient_rk_hamiltonian.h"
 #include "hamiltonians/twisted_heterobilayer_hamiltonian.h"
 #include "hamiltonians/heterobilayer_hamiltonian.h"
 #include "hamiltonians/exciton_exciton_coulomb_hamiltonian.h"
+#include "hamiltonians/exciton_exciton_non_interact_hamiltonian.h"
 
-int main() {
-    std::cout << "=================================\n";
-    std::cout << "   Exciton-Exciton Interaction   \n";
-    std::cout << "=================================\n";
+int main(int argc, char* argv[]) {
+    std::string configPath = argc > 1 ? argv[1] : "config.json";
+    QMCConfig cfg = QMCConfig::fromFile(configPath);
 
-    const PeriodicBoundary* pbc = nullptr;
-
-    double me = 1.0;
-    double mh = 1.0;
-    double mu = (me * mh) / (me + mh);
-    double d = 0.2 * me / mu;
-    double R = 4.0 * me / mu;
-
-    std::vector<double> masses = {mu,  mu};
-    std::vector<double> charges = {-1.0, -1.0};
-
-    std::vector<double> alpha = {1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
-
-    std::vector<double> params = {3.4722, 10.4458, 13.1154, 19.7361, 0.565659, 1.34458, 6.41809, 1.34458, 6.41809};
-
-    int nParticles = 2;
-    int nDim = 2;
-
-    ExcitonExcitonCoulombHamiltonian hamiltonian(nParticles, nDim, masses, charges, me, mh, d, R);
-    ExcitonExcitonWF wf(alpha, nParticles, nDim, me, mh, d, R);
-
-    wf.setParameters(params);
-
-    std::cout << "==========\n";
-    std::cout << "   BFGS   \n";
-    std::cout << "==========\n";
+    System sys = buildSystem(cfg);
+    auto& ham  = *sys.hamiltonian;
+    auto& wf   = *sys.wf;
 
     std::random_device rd;
-    unsigned int randomSeed = rd();
-    
-    Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
+    Metropolis sampler(rd(), 1.0, sys.nParticles, sys.nDim);
 
-    JastrowBFGSOptimizer optVariance(0.1, 50, 1e5);
-    optVariance.optimize(wf, hamiltonian, optimizerSampler);
+    if (cfg.optimizer.enabled) {
+        auto& o = cfg.optimizer;
+        JastrowBFGSOptimizer opt(o.learningRate, o.maxEpochs, o.samplesPerEpoch);
+        opt.optimize(wf, ham, sampler);
+    }
 
+    if (cfg.vmc.enabled) {
+        VMC vmc(ham, wf, sampler, cfg.vmc.nSteps, cfg.vmc.nEquilibration);
+        vmc.run();
+        // write result to cfg.outputFile
+    }
 
-    std::vector<double> optParams = wf.getParameters();
-    std::cout << "Parametros Otimizados (log): [" 
-              << optParams[0] << ", "
-              << optParams[1] << ", "
-              << optParams[2] << ", "
-              << optParams[3] << ", "
-              << optParams[4] << ", "
-              << optParams[5] << ", "
-              << optParams[6] << ", "
-              << optParams[7] << ", "
-              << optParams[8] << "]\n\n";
-
-
-
-    std::cout << "--- Rodando VMC de Producao ---\n";
-    
-    VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
-    vmc.run();
-
-    std::cout << "Energy: "             << vmc.result.energy             << "\n";
-    std::cout << "Variance: "           << vmc.result.variance           << "\n";
-    std::cout << "StdError: "           << vmc.result.stdError           << "\n";
-    std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
-    std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
-
-
-    std::cout << "--- Rodando DMC ---\n";
-    double deltaTau = 0.01;
-    bool useFixedNode = true;
-    bool useMaxBranch = true;
-
-    DMC dmc(hamiltonian, wf, deltaTau, pbc, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
-    dmc.run();
+    if (cfg.dmc.enabled) {
+        DMC dmc(ham, wf, cfg.dmc.deltaTau, nullptr,
+                Constants::N_WALKERS_TARGET, cfg.dmc.fixedNode, cfg.dmc.maxBranch);
+        dmc.run();
+    }
 
     return 0;
 }
+
+// int main() {
+//     std::cout << "=================================\n";
+//     std::cout << "   Exciton-Exciton Interaction   \n";
+//     std::cout << "=================================\n";
+
+//     const PeriodicBoundary* pbc = nullptr;
+
+//     double me = 1.0;
+//     double mh = 1.0;
+//     double mu = (me * mh) / (me + mh);
+//     double d = 0.2 * me / mu;
+//     double R = 2.0 * me / mu;
+
+//     std::vector<double> masses = {mu,  mu};
+//     std::vector<double> charges = {-1.0, -1.0};
+
+//     std::vector<double> alpha = {1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
+
+//     std::vector<double> params = {3.4722, 10.4458, 13.1154, 19.7361, 0.565659, 1.34458, 6.41809, 1.34458, 6.41809};
+
+//     int nParticles = 2;
+//     int nDim = 2;
+
+//     ExcitonExcitonCoulombHamiltonian hamiltonian(nParticles, nDim, masses, charges, me, mh, d, R);
+//     ExcitonExcitonWF wf(alpha, nParticles, nDim, me, mh, d, R);
+
+//     wf.setParameters(params);
+
+//     std::cout << "==========\n";
+//     std::cout << "   BFGS   \n";
+//     std::cout << "==========\n";
+
+//     std::random_device rd;
+//     unsigned int randomSeed = rd();
+    
+//     Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
+
+//     JastrowBFGSOptimizer optVariance(0.1, 50, 1e5);
+//     optVariance.optimize(wf, hamiltonian, optimizerSampler);
+
+
+//     std::vector<double> optParams = wf.getParameters();
+//     std::cout << "Parametros Otimizados (log): [" 
+//               << optParams[0] << ", "
+//               << optParams[1] << ", "
+//               << optParams[2] << ", "
+//               << optParams[3] << ", "
+//               << optParams[4] << ", "
+//               << optParams[5] << ", "
+//               << optParams[6] << ", "
+//               << optParams[7] << ", "
+//               << optParams[8] << "]\n\n";
+
+
+
+//     std::cout << "=========\n";
+//     std::cout << "   VMC   \n";
+//     std::cout << "=========\n";
+    
+//     VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
+//     vmc.run();
+
+//     std::cout << "Energy: "             << vmc.result.energy             << "\n";
+//     std::cout << "Variance: "           << vmc.result.variance           << "\n";
+//     std::cout << "StdError: "           << vmc.result.stdError           << "\n";
+//     std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
+//     std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
+
+
+//     std::cout << "=========\n";
+//     std::cout << "   DMC   \n";
+//     std::cout << "=========\n";
+
+//     double deltaTau = 0.001;
+//     bool useFixedNode = true;
+//     bool useMaxBranch = true;
+
+//     DMC dmc(hamiltonian, wf, deltaTau, pbc, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
+//     dmc.run();
+
+//     return 0;
+// }
+
+// int main() {
+//     std::cout << "==================================\n";
+//     std::cout << "   Exciton-Exciton Non-Interact   \n";
+//     std::cout << "==================================\n";
+
+//     const PeriodicBoundary* pbc = nullptr;
+
+//     double me = 1.0;
+//     double mh = 1.0;
+//     double mu = (me * mh) / (me + mh);
+//     double d = 0.2 * me / mu;
+
+//     std::vector<double> masses = {mu,  mu};
+//     std::vector<double> charges = {-1.0, -1.0};
+
+//     std::vector<double> alpha = {1.0, -1.0, 1.0, -1.0, 1.0};
+
+//     std::vector<double> params = {1.0, -1.0, 1.0, -1.0, 1.0};
+
+//     int nParticles = 2;
+//     int nDim = 2;
+
+//     ExcitonExcitonNonInteractHamiltonian hamiltonian(nParticles, nDim, masses, charges, me, mh, d);
+//     ExcitonExcitonNonInteractWF wf(alpha, nParticles, nDim, me, mh, d);
+
+//     wf.setParameters(params);
+
+//     std::cout << "==========\n";
+//     std::cout << "   BFGS   \n";
+//     std::cout << "==========\n";
+
+//     std::random_device rd;
+//     unsigned int randomSeed = rd();
+    
+//     Metropolis optimizerSampler(randomSeed, 1.0, nParticles, nDim); 
+
+//     JastrowBFGSOptimizer optVariance(0.1, 50, 1e5);
+//     optVariance.optimize(wf, hamiltonian, optimizerSampler);
+
+
+//     std::vector<double> optParams = wf.getParameters();
+//     std::cout << "Parametros Otimizados (log): [" 
+//               << optParams[0] << ", "
+//               << optParams[1] << ", "
+//               << optParams[2] << ", "
+//               << optParams[3] << ", "
+//               << optParams[4] << "]\n\n";
+
+
+
+//     std::cout << "--- Rodando VMC de Producao ---\n";
+    
+//     VMC vmc(hamiltonian, wf, optimizerSampler, 1e7, 1e6);
+//     vmc.run();
+
+//     std::cout << "Energy: "             << vmc.result.energy             << "\n";
+//     std::cout << "Variance: "           << vmc.result.variance           << "\n";
+//     std::cout << "StdError: "           << vmc.result.stdError           << "\n";
+//     std::cout << "metropolisStepSize: " << vmc.result.metropolisStepSize << "\n";
+//     std::cout << "acceptanceRate: "     << vmc.result.acceptanceRate     << "\n\n";
+
+
+//     std::cout << "--- Rodando DMC ---\n";
+//     double deltaTau = 0.01;
+//     bool useFixedNode = true;
+//     bool useMaxBranch = true;
+
+//     DMC dmc(hamiltonian, wf, deltaTau, pbc, Constants::N_WALKERS_TARGET, useFixedNode, useMaxBranch);
+//     dmc.run();
+
+//     return 0;
+// }
 
 // int main() {
 //     std::cout << "=======================\n";
