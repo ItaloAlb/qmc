@@ -21,6 +21,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Se não for encontrada, o CMake emitirá um erro.
 find_package(OpenMP REQUIRED)
 
+# Baixa a biblioteca nlohmann/json para parsing de JSON.
+include(FetchContent)
+FetchContent_Declare(
+    json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+)
+FetchContent_MakeAvailable(json)
+
 # --- Definição do Executável e Arquivos-Fonte ---
 # Define o nome do arquivo executável que será gerado.
 set(EXECUTABLE_NAME qmc)
@@ -55,6 +63,7 @@ target_include_directories(${EXECUTABLE_NAME}
 target_link_libraries(${EXECUTABLE_NAME}
     PUBLIC
         OpenMP::OpenMP_CXX
+        nlohmann_json::nlohmann_json
 )
 
 # --- Configuração de Saída (Opcional, mas recomendado) ---

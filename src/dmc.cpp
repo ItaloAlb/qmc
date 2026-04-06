@@ -326,10 +326,10 @@ void DMC::initializeWalkers() {
     meanEnergy = referenceEnergy;
 }
 
-void DMC::run() {
+DMCResult DMC::run(const std::string& outputFile) {
     double blockTime = deltaTau * Constants::N_STEPS_PER_BLOCK;
 
-    std::ofstream fout("build/bin/qmc.dat");
+    std::ofstream fout(outputFile);
     std::deque<double> energyQueue;
     
     std::vector<double> blockMeanEnergies;
@@ -383,4 +383,6 @@ void DMC::run() {
     std::cout << "Mean Energy: " << meanEnergy << std::endl;
     std::cout << "Variance: " << variance << std::endl;
     std::cout << "Standard Error: " << stdError << std::endl;
+
+    return { meanEnergy, variance, stdError };
 }

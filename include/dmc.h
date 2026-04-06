@@ -56,16 +56,16 @@ class DMC {
         void timeStep();
         BlockResult blockStep(int nSteps);
 
-    public: 
-        DMC(const Hamiltonian& hamiltonian, 
-            WaveFunction& wf, 
+    public:
+        DMC(const Hamiltonian& hamiltonian,
+            WaveFunction& wf,
             double deltaTau,
             const PeriodicBoundary* pbc = nullptr,
             int nWalkers = Constants::N_WALKERS_TARGET,
             bool isFixedNode = false,
             bool isMaxBranch = false);
 
-        void run();
+        DMCResult run(const std::string& outputFile = "qmc.dat");
 };
 
 #endif

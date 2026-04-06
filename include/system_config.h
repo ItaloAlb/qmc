@@ -92,16 +92,16 @@ System ExcitonExcitonNonInteract(const json& p) {
     std::vector<double> alpha   = p.at("wf_alpha").get<std::vector<double>>();
     int nP = p.at("nParticles"), nD = p.at("nDim");
 
-    auto ham = std::make_unique<ExcitonExcitonCoulombHamiltonian>(
-        nP, nD, masses, charges, me, mh, d, R);
-    auto wf  = std::make_unique<ExcitonExcitonWF>(
-        alpha, nP, nD, me, mh, d, R);
+    auto ham = std::make_unique<ExcitonExcitonNonInteractHamiltonian>(
+        nP, nD, masses, charges, me, mh, d);
+    auto wf  = std::make_unique<ExcitonExcitonNonInteractWF>(
+        alpha, nP, nD, me, mh, d);
     wf->setParameters(p.at("wf_params_init").get<std::vector<double>>());
     return { std::move(ham), std::move(wf), nP, nD };
 }
 
 
-System System(const QMCConfig& cfg) {
+System buildSystem(const QMCConfig& cfg) {
     const std::string& name = cfg.systemName;
     const json& p           = cfg.params;
 

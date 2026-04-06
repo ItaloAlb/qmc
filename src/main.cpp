@@ -24,6 +24,8 @@
 #include "hamiltonians/exciton_exciton_coulomb_hamiltonian.h"
 #include "hamiltonians/exciton_exciton_non_interact_hamiltonian.h"
 
+#include "system_config.h"
+
 int main(int argc, char* argv[]) {
     std::string configPath = argc > 1 ? argv[1] : "config.json";
     QMCConfig cfg = QMCConfig::fromFile(configPath);
@@ -41,17 +43,38 @@ int main(int argc, char* argv[]) {
         opt.optimize(wf, ham, sampler);
     }
 
+    json results;
+    results["params"] = cfg.params;
+
     if (cfg.vmc.enabled) {
         VMC vmc(ham, wf, sampler, cfg.vmc.nSteps, cfg.vmc.nEquilibration);
         vmc.run();
-        // write result to cfg.outputFile
+        results["vmc"] = {
+            {"energy",    vmc.result.energy},
+            {"variance",  vmc.result.variance},
+            {"std_error", vmc.result.stdError},
+            {"acceptance_rate",      vmc.result.acceptanceRate},
+            {"metropolis_step_size", vmc.result.metropolisStepSize}
+        };
     }
 
     if (cfg.dmc.enabled) {
+        std::string datFile = cfg.outputFile + ".dat";
         DMC dmc(ham, wf, cfg.dmc.deltaTau, nullptr,
                 Constants::N_WALKERS_TARGET, cfg.dmc.fixedNode, cfg.dmc.maxBranch);
-        dmc.run();
+        DMCResult dmcResult = dmc.run(datFile);
+        results["dmc"] = {
+            {"energy",    dmcResult.energy},
+            {"variance",  dmcResult.variance},
+            {"std_error", dmcResult.stdError}
+        };
     }
+
+    std::string resultsFile = cfg.outputFile + "_results.json";
+    std::ofstream out(resultsFile);
+    out << results.dump(4) << std::endl;
+    out.close();
+    std::cout << "Results written to: " << resultsFile << std::endl;
 
     return 0;
 }
