@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 
     if (cfg.optimizer.enabled) {
         auto& o = cfg.optimizer;
-        JastrowBFGSOptimizer opt(o.learningRate, o.maxEpochs, o.samplesPerEpoch);
+        LinearMethodOptimizer opt(o.maxEpochs, o.samplesPerEpoch);
         opt.optimize(wf, ham, sampler);
     }
 
