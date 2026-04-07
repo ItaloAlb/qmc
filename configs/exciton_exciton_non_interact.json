@@ -1,0 +1,33 @@
+{
+    "system": "exciton_exciton_non_interact",
+    "params": {
+        "me": 1.0,
+        "mh": 1.0,
+        "d": 0.4,
+        "charges": [-1.0, -1.0],
+        "wf_alpha": [1.0, -1.0, 1.0, -1.0, 1.0],
+        "wf_params_init": [1.0, -1.0, 1.0, -1.0, 1.0],
+        "nParticles": 2,
+        "nDim": 2
+    },
+    "output": {
+        "file": "output"
+    },
+    "optimizer": {
+        "enabled": true,
+        "learning_rate": 0.1,
+        "max_epochs": 50,
+        "samples_per_epoch": 100000
+    },
+    "vmc": {
+        "enabled": true,
+        "n_steps": 10000000,
+        "n_equilibration": 1000000
+    },
+    "dmc": {
+        "enabled": true,
+        "delta_tau": 0.01,
+        "fixed_node": true,
+        "max_branch": true
+    }
+}
