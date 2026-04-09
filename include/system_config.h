@@ -32,7 +32,9 @@ System MonolayerBiexciton(const json& p) {
     return { std::move(ham), std::move(wf), nP, nD };
 }
 
-System MoireExciton(const json& p) {
+System TwistedHeterobilayerExciton(const json& p) {
+    double me        = p.at("me");
+    double mh        = p.at("mh");
     double thickness = p.at("thickness");
     double alpha_rk  = p.at("alpha");
     double eps       = p.at("eps");
@@ -40,26 +42,52 @@ System MoireExciton(const json& p) {
     double eps2      = p.at("eps2");
     double theta     = p.at("theta");
     double eField    = p.at("eField");
-    double me        = p.at("me");
-    double mh        = p.at("mh");
+    double a10       = p.at("a10");
+    double a20       = p.at("a20");
+    double Vh1       = p.at("Vh1");
+    double Vh2       = p.at("Vh2");
+    double Ve1       = p.at("Ve1");
+    double Ve2       = p.at("Ve2");
+    double d0        = p.at("d0");
+    double d1        = p.at("d1");
+    double d2        = p.at("d2");
 
     double rho0 = alpha_rk * 2 * thickness * eps / (eps1 + eps2) / Constants::a0;
-    TwistedBilayerSystem moire(theta, eField, thickness);
+
+    TwistedBilayerSystem moire(a10, a20, theta, eField,
+                               Vh1, Vh2, Ve1, Ve2,
+                               d0, d1, d2);
+
+    bool interacting = p.value("interacting", true);
 
     std::vector<double> masses  = { me, mh };
     std::vector<double> charges = p.at("charges").get<std::vector<double>>();
-    std::vector<double> initP   = p.at("wf_params_init").get<std::vector<double>>();
+    std::vector<double> optP    = p.at("wf_params_init").get<std::vector<double>>();
 
-    double varX1 = p.at("variance_params")[0];
-    double varX2 = p.at("variance_params")[1];
-    double varX3 = p.at("variance_params")[2];
-    double varX4 = p.at("variance_params")[3];
+    std::vector<double> initP(7, 0.0);
+    if (interacting) {
+        // c1 is fixed by the Kato cusp condition
+        double c1 = (me * mh) / ((eps1 + eps2) * rho0 * (me + mh));
+        initP[0] = c1;
+        initP[1] = std::exp(optP[0]);  // c2 (config gives log-space)
+        initP[2] = std::exp(optP[1]);  // c3 (config gives log-space)
+        initP[3] = optP[2];            // Ve1_var
+        initP[4] = optP[3];            // Ve2_var
+        initP[5] = optP[4];            // Vh1_var
+        initP[6] = optP[5];            // Vh2_var
+    } else {
+        // jastrow disabled: c1,c2,c3 are unused, config holds only the 4 moiré vars
+        initP[3] = optP[0];            // Ve1_var
+        initP[4] = optP[1];            // Ve2_var
+        initP[5] = optP[2];            // Vh1_var
+        initP[6] = optP[3];            // Vh2_var
+    }
 
     int nP = 2, nD = 2;
     auto ham = std::make_unique<TwistedHeterobilayerHamiltonian>(
-        nP, nD, masses, charges, moire, rho0, eps1, eps2);
-    auto wf  = std::make_unique<TwistedBilayerExcitonGaussianWF>(
-        initP, nP, nD, varX1, varX2, varX3, varX4);
+        nP, nD, masses, charges, moire, rho0, thickness, eps1, eps2, interacting);
+    auto wf  = std::make_unique<TwistedBilayerExcitonWF>(
+        initP, nP, nD, moire, thickness, interacting);
     return { std::move(ham), std::move(wf), nP, nD };
 }
 
@@ -107,9 +135,9 @@ System buildSystem(const QMCConfig& cfg) {
 
     if      (name == "helium")              return Helium(p);
     else if (name == "monolayer_biexciton") return MonolayerBiexciton(p);
-    else if (name == "moire_exciton")       return MoireExciton(p);
     else if (name == "exciton_exciton")     return ExcitonExciton(p);
     else if (name == "exciton_exciton_non_interact")    return ExcitonExcitonNonInteract(p);
+    else if (name == "twisted_heterobilayer_exciton")   return TwistedHeterobilayerExciton(p);
     // ...
     else throw std::runtime_error("Unknown system: " + name);
 }

@@ -1,0 +1,49 @@
+{
+    "system": "twisted_heterobilayer_exciton",
+    "params": {
+        "me": 0.43,
+        "mh": 0.35,
+        "charges": [-1.0, 1.0],
+
+        "thickness": 6.15,
+        "alpha": 0.9,
+        "eps": 14.0,
+        "eps1": 10.0,
+        "eps2": 10.0,
+
+        "theta": 1.0,
+        "eField": 69.9,
+        "a10": 3.186,
+        "a20": 3.184,
+
+        "Vh1": 19.0,
+        "Vh2": 80.0,
+        "Ve1": 21.0,
+        "Ve2": 26.0,
+        "d0": 6.75,
+        "d1": -0.55,
+        "d2": -0.55,
+
+        "wf_params_init": [0.1, 0.1, 0.0, 0.0, 0.0, 0.0]
+    },
+    "output": {
+        "file": "results/twisted_heterobilayer_exciton/interacting"
+    },
+    "optimizer": {
+        "enabled": true,
+        "learning_rate": 0.1,
+        "max_epochs": 50,
+        "samples_per_epoch": 100000
+    },
+    "vmc": {
+        "enabled": true,
+        "n_steps": 10000000,
+        "n_equilibration": 1000000
+    },
+    "dmc": {
+        "enabled": true,
+        "delta_tau": 0.01,
+        "fixed_node": true,
+        "max_branch": true
+    }
+}

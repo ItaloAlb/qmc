@@ -4,6 +4,7 @@
 #include <vector>
 #include <random>
 #include <cmath>
+#include <complex>
 #include <functional>
 
 #include "constants.h"
@@ -13,45 +14,81 @@ class WaveFunction;
 using namespace Constants;
 
 struct TwistedBilayerSystem {
-    const double Vh1 = -107.1 / HARTREE;
-    const double Vh2 = -(107.1 - 16.9) / HARTREE; 
-    const double Ve1 = -17.3 / HARTREE;
-    const double Ve2 = -(17.3 - 3.5) / HARTREE;
+    const double Vh1;
+    const double Vh2;
+    const double Ve1;
+    const double Ve2;
 
-    const double d0 = 6.387 / a0;
-    const double d1 = 0.544 / a0;
-    const double d2 = 0.042 / a0;
+    const double d0;
+    const double d1;
+    const double d2;
 
-    const double a10 = 3.282;
-    const double a20 = 3.160;
-    const double delta = std::abs(a10 - a20) / a10;
-
+    const double a10;
+    const double a20;
 
     const double HALF_PHASE = 2.0 * PI / 3.0;
     const double PHASE = 4.0 * PI / 3.0;
 
     double theta;
     double eField;
-    double thickness;
-    double thicknessSquared;
-    
+
     double moireLength;
     double absK;
     double k1x, k1y, k2x, k2y, k3x, k3y;
-    
-    TwistedBilayerSystem(double theta_, double eField_, double thickness_) 
-        : theta(theta_ * PI / 180), eField(eField_ * a0 / HARTREE), thickness(thickness_ / Constants::a0)
-    {
-        moireLength = a10 / std::sqrt(theta*theta + delta*delta) / a0;
-        absK = (4.0 * PI) / (3.0 * moireLength);
-        thicknessSquared = thickness * thickness;
 
-        k1x = absK * 1.0;
-        k1y = absK * 0.0;
-        k2x = absK * (-0.5);
-        k2y = absK * (std::sqrt(3.0) / 2.0);
-        k3x = absK * (-0.5);
-        k3y = absK * (-std::sqrt(3.0) / 2.0);
+    TwistedBilayerSystem(double a10_, double a20_,
+                         double theta_, double eField_,
+                         double Vh1_, double Vh2_,
+                         double Ve1_, double Ve2_,
+                         double d0_, double d1_, double d2_)
+        : Vh1(Vh1_ / HARTREE),
+          Vh2(Vh2_ / HARTREE),
+          Ve1(Ve1_ / HARTREE),
+          Ve2(Ve2_ / HARTREE),
+          d0(d0_ / a0),
+          d1(d1_ / a0),
+          d2(d2_ / a0),
+          a10(a10_ / a0),
+          a20(a20_ / a0),
+          theta(theta_ * PI / 180),
+          eField(eField_ * a0 / HARTREE)
+    {
+        double delta = std::abs(a10 - a20);
+        moireLength = a10 / std::sqrt(theta*theta + delta*delta);
+        absK = (4.0 * PI) / (3.0 * moireLength);
+
+        k1x = absK;        k1y = 0.0;
+        k2x = -0.5 * absK; k2y =  absK * std::sqrt(3.0) / 2.0;
+        k3x = -0.5 * absK; k3y = -absK * std::sqrt(3.0) / 2.0;
+    }
+
+    double getCarrierPotential(double x, double y, double V1, double V2) const {
+        using namespace std::complex_literals;
+
+        double K1r = k1x * x + k1y * y;
+        double K2r = k2x * x + k2y * y;
+        double K3r = k3x * x + k3y * y;
+
+        std::complex<double> f1 = (std::exp(-1i * K1r) +
+                                   std::exp(-1i * K2r) +
+                                   std::exp(-1i * K3r)) / 3.0;
+
+        std::complex<double> f2 = (std::exp(-1i * K1r) +
+                                   std::exp(-1i * (K2r + HALF_PHASE)) +
+                                   std::exp(-1i * (K3r + PHASE))) / 3.0;
+
+        double f1Sq = std::norm(f1);
+        double f2Sq = std::norm(f2);
+
+        double d = d0 + d1 * f1Sq + d2 * f2Sq;
+
+        return V1 * f1Sq + V2 * f2Sq + eField * d * 0.5;
+    }
+
+    double getExcitonMoirePotential(const double* position) const {
+        double Ve = getCarrierPotential(position[0], position[1], Ve1, Ve2);
+        double Vh = getCarrierPotential(position[2], position[3], Vh1, Vh2);
+        return Ve + Vh;
     }
 };
 

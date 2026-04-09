@@ -37,14 +37,25 @@ int main(int argc, char* argv[]) {
     std::random_device rd;
     Metropolis sampler(rd(), 1.0, sys.nParticles, sys.nDim);
 
+    json results;
+    results["params"] = cfg.params;
+    results["initial_params"] = wf.getParameters();
+
     if (cfg.optimizer.enabled) {
         auto& o = cfg.optimizer;
         LinearMethodOptimizer opt(o.maxEpochs, o.samplesPerEpoch);
         opt.optimize(wf, ham, sampler);
-    }
 
-    json results;
-    results["params"] = cfg.params;
+        std::vector<double> optimized = wf.getParameters();
+        results["optimized_params"] = optimized;
+
+        std::cout << "\nOptimized wavefunction parameters:\n[";
+        for (size_t i = 0; i < optimized.size(); ++i) {
+            std::cout << optimized[i];
+            if (i + 1 < optimized.size()) std::cout << ", ";
+        }
+        std::cout << "]\n" << std::endl;
+    }
 
     if (cfg.vmc.enabled) {
         VMC vmc(ham, wf, sampler, cfg.vmc.nSteps, cfg.vmc.nEquilibration);
@@ -56,6 +67,13 @@ int main(int argc, char* argv[]) {
             {"acceptance_rate",      vmc.result.acceptanceRate},
             {"metropolis_step_size", vmc.result.metropolisStepSize}
         };
+
+        std::cout << "VMC output:\n"
+                  << "  Energy    = " << vmc.result.energy    << "\n"
+                  << "  Variance  = " << vmc.result.variance  << "\n"
+                  << "  StdError  = " << vmc.result.stdError  << "\n"
+                  << "  AccRate   = " << vmc.result.acceptanceRate << "\n"
+                  << "  StepSize  = " << vmc.result.metropolisStepSize << "\n" << std::endl;
     }
 
     if (cfg.dmc.enabled) {
@@ -68,13 +86,18 @@ int main(int argc, char* argv[]) {
             {"variance",  dmcResult.variance},
             {"std_error", dmcResult.stdError}
         };
+
+        std::cout << "DMC output\n"
+                  << "  Energy    = " << dmcResult.energy    << "\n"
+                  << "  Variance  = " << dmcResult.variance  << "\n"
+                  << "  StdError  = " << dmcResult.stdError  << "\n" << std::endl;
     }
 
     std::string resultsFile = cfg.outputFile + "_results.json";
     std::ofstream out(resultsFile);
     out << results.dump(4) << std::endl;
     out.close();
-    std::cout << "Results written to: " << resultsFile << std::endl;
+    // std::cout << "Results written to: " << resultsFile << std::endl;
 
     return 0;
 }

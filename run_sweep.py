@@ -41,11 +41,10 @@ def run_single(config, label, run_dir):
         json.dump(config, f, indent=4)
 
     print(f"[{label}] Running QMC...")
-    result = subprocess.run([QMC_EXECUTABLE, config_path],
-                            capture_output=True, text=True)
+    result = subprocess.run([QMC_EXECUTABLE, config_path])
 
     if result.returncode != 0:
-        print(f"[{label}] ERROR:\n{result.stderr}")
+        print(f"[{label}] ERROR (exit code {result.returncode})")
         return None
 
     results_path = output_base + "_results.json"

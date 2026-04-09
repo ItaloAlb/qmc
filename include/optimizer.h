@@ -254,7 +254,7 @@ private:
 
 public:
     LinearMethodOptimizer(int epochs, int samples,
-                          double xi_ = 0.5, double adiag_ = 1e-3)
+                          double xi_ = 0.5, double adiag_ = 1.0)
         : maxEpochs(epochs), samplesPerEpoch(samples),
           xi(xi_), adiag(adiag_) {}
 
@@ -274,7 +274,13 @@ public:
         double psiTmp = wf.trialWaveFunction(currentPosition.data());
         adjustStepSize(wf, sampler, psiTmp);
 
-        std::cout << "LINEAR METHOD (Umrigar 2007) - Adaptive adiag" << std::endl;
+        // Best parameters seen so far — used to reject bad updates and to
+        // guarantee the optimizer returns the best wavefunction regardless of
+        // which epoch happens to land last.
+        std::vector<double> bestParams = currentParams;
+        double bestEnergy = std::numeric_limits<double>::max();
+
+        std::cout << "LINEAR METHOD (Umrigar 2007)" << std::endl;
 
         for (int epoch = 0; epoch < maxEpochs; ++epoch) {
             // ---- Equilibrate at the current parameter set ----------------------
@@ -355,16 +361,26 @@ public:
                 for (int j = 0; j < nParams; ++j)
                     H[i + 1][j + 1] = avgOdE[i][j] + avgOOE[i][j];
 
+            // Track the best-so-far (uses the unbiased MC average at the current
+            // parameters, which is the cheapest honest energy estimate we have).
+            if (std::isfinite(avgE) && avgE < bestEnergy) {
+                bestEnergy = avgE;
+                bestParams = currentParams;
+            }
+
             // ---- Adaptive adiag selection (Umrigar 2007 stabilization) ---------
             // Try three values of adiag differing by factors of 10, estimate the
-            // resulting energies via correlated sampling on the stored MC configs,
-            // and pick the optimum by parabolic interpolation in log-space.
+            // resulting energies via a short correlated-sampling chain, and pick
+            // the optimum by parabolic interpolation in log-space. We pass a copy
+            // of the walker position so the main-loop walker isn't perturbed.
             std::vector<double> candidates  = { adiag / 10.0, adiag, adiag * 10.0 };
             std::vector<double> log_alphas  = { std::log10(candidates[0]),
                                                 std::log10(candidates[1]),
                                                 std::log10(candidates[2]) };
             std::vector<double> candidate_Es;
+            std::vector<std::vector<double>> candidate_dpRs;
             candidate_Es.reserve(3);
+            candidate_dpRs.reserve(3);
 
             const int correlatedSteps = std::max(100, samplesPerEpoch / 10);
             for (double alpha : candidates) {
@@ -374,32 +390,70 @@ public:
                 std::vector<double> dpR = applyRescaling(dp, S);
                 std::vector<double> p_new = currentParams;
                 for (int i = 0; i < nParams; ++i) p_new[i] += dpR[i + 1];
+                std::vector<double> posCopy = currentPosition;   // don't clobber main walker
                 candidate_Es.push_back(
                     estimateEnergyCorrelated(wf, ham, sampler, p_new, currentParams,
-                                             currentPosition, correlatedSteps));
+                                             posCopy, correlatedSteps));
+                candidate_dpRs.push_back(std::move(dpR));
             }
+            // Restore the wavefunction to the current parameters after the probes.
+            wf.setParameters(currentParams);
 
             double opt_log_alpha = parabolicInterpolation(log_alphas, candidate_Es);
             opt_log_alpha = std::max(-6.0, std::min(2.0, opt_log_alpha));
-            adiag = std::pow(10.0, opt_log_alpha);
+            double newAdiag = std::pow(10.0, opt_log_alpha);
 
             // ---- Final solve with chosen adiag ---------------------------------
             std::vector<std::vector<double>> H_f = H;
-            for (int i = 1; i < N; ++i) H_f[i][i] += adiag;
+            for (int i = 1; i < N; ++i) H_f[i][i] += newAdiag;
             std::vector<double> dp_f  = solveGeneralizedEig(H_f, S, avgE - 0.1);
             std::vector<double> dpR_f = applyRescaling(dp_f, S);
 
-            // ---- Update parameters ---------------------------------------------
+            std::vector<double> proposedParams = currentParams;
             for (int i = 0; i < nParams; ++i)
-                currentParams[i] += dpR_f[i + 1];
+                proposedParams[i] += dpR_f[i + 1];
+
+            // ---- Safety: validate the proposed update via correlated sampling --
+            // Reject NaN/inf, or any step whose correlated-sampling energy is
+            // much worse than the current one. On rejection, keep the current
+            // parameters and crank up adiag for the next epoch so the next step
+            // rotates toward steepest descent.
+            std::vector<double> posCheck = currentPosition;
+            double proposedE = estimateEnergyCorrelated(
+                wf, ham, sampler, proposedParams, currentParams, posCheck, correlatedSteps);
             wf.setParameters(currentParams);
+
+            const double rejectTol = 0.5;  // allow small uphill moves (MC noise)
+            bool accept =  std::isfinite(proposedE)
+                        && proposedE < avgE + rejectTol
+                        && std::all_of(proposedParams.begin(), proposedParams.end(),
+                                       [](double v){ return std::isfinite(v); });
+
+            std::string status;
+            if (accept) {
+                currentParams = proposedParams;
+                wf.setParameters(currentParams);
+                adiag = newAdiag;
+                status = "accept";
+            } else {
+                // Bad step — keep params, increase adiag (reset floor to 1e-3).
+                adiag = std::min(1e2, std::max(1e-3, newAdiag * 10.0));
+                wf.setParameters(currentParams);
+                status = "REJECT";
+            }
 
             std::cout << "Epoch " << (epoch + 1)
                       << " | E = "      << avgE
+                      << " | E_prop = " << proposedE
                       << " | adiag = "  << adiag
                       << " | accRate = " << accRate
+                      << " | " << status
                       << std::endl;
         }
+
+        // Restore the best parameters seen during the run.
+        wf.setParameters(bestParams);
+        std::cout << "Best VMC energy during optimization: " << bestEnergy << std::endl;
     }
 };
 
