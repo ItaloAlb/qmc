@@ -1,35 +1,24 @@
 {
-    "system": "twisted_heterobilayer_exciton",
+    "system": "exciton_in_a_square_potential",
     "params": {
-        "interacting": false,
-
         "me": 0.43,
         "mh": 0.35,
         "charges": [-1.0, 1.0],
 
         "thickness": 6.15,
-        "alpha": 0.9,
+        "alpha": 1.5,
         "eps": 14.0,
-        "eps1": 10.0,
-        "eps2": 10.0,
+        "eps1": 4.5,
+        "eps2": 4.5,
 
-        "theta": 1.0,
-        "eField": 69.9,
-        "a10": 3.186,
-        "a20": 3.184,
+        "V0": 100.0,
+        "side": 50.0,
 
-        "Vh1": 19.0,
-        "Vh2": 80.0,
-        "Ve1": 21.0,
-        "Ve2": 26.0,
-        "d0": 6.75,
-        "d1": -0.55,
-        "d2": -0.55,
-
-        "wf_params_init": [0.0, 0.0, 0.0, 0.0]
+        "interacting": true,
+        "wf_params_init": [0.1, 0.1, 0.0, 0.0]
     },
     "output": {
-        "file": "results/twisted_heterobilayer_exciton_non_interacting"
+        "file": "results/exciton_in_a_square_potential"
     },
     "optimizer": {
         "enabled": true,

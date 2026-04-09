@@ -1,10 +1,27 @@
 #include "periodic_boundary.h"
 
+#include <stdexcept>
+
 using namespace Utils;
 
-PeriodicBoundary::PeriodicBoundary(const std::vector<double>& latticeVectors) 
-    : matrixCell(latticeVectors) {
-    
+PeriodicBoundary::PeriodicBoundary(const std::vector<std::vector<double>>& latticeVectors) {
+    dim = static_cast<int>(latticeVectors.size());
+    if (dim <= 0) {
+        throw std::invalid_argument("PeriodicBoundary: need at least one lattice vector");
+    }
+
+    matrixCell.assign(dim * dim, 0.0);
+    for (int j = 0; j < dim; ++j) {
+        if (static_cast<int>(latticeVectors[j].size()) != dim) {
+            throw std::invalid_argument(
+                "PeriodicBoundary: each lattice vector must have length dim");
+        }
+        // Store lattice vector j as column j of the row-major matrix.
+        for (int i = 0; i < dim; ++i) {
+            matrixCell[i * dim + j] = latticeVectors[j][i];
+        }
+    }
+
     invMatrixCell = invertMatrix(matrixCell);
 }
 
@@ -17,7 +34,7 @@ void PeriodicBoundary::applyPeriodicBoundary(double* position) const {
     }
 
     for (int i = 0; i < dim; ++i) {
-        s[i] = s[i] - std::floor(s[i]);
+        s[i] -= std::floor(s[i]);
     }
 
     for (int i = 0; i < dim; ++i) {
@@ -58,4 +75,13 @@ double PeriodicBoundary::getDistanceSq(const double* r1, const double* r2) const
 
 double PeriodicBoundary::getDistance(const double* r1, const double* r2) const {
     return std::sqrt(getDistanceSq(r1, r2));
+}
+
+void PeriodicBoundary::fractionalToCartesian(const double* frac, double* cart) const {
+    for (int i = 0; i < dim; ++i) {
+        cart[i] = 0.0;
+        for (int j = 0; j < dim; ++j) {
+            cart[i] += matrixCell[i * dim + j] * frac[j];
+        }
+    }
 }

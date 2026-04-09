@@ -4,6 +4,32 @@
 #include "config.h"
 #include "constants.h"
 
+// Read an optional "pbc" block from the params JSON and build a
+// PeriodicBoundary. Returns nullptr if no "pbc" key is present.
+//
+// Expected JSON shape (2D example):
+//     "pbc": {
+//         "a1": [L, 0],
+//         "a2": [0, L]
+//     }
+// Vectors must be in the same units the rest of the system uses (Bohr
+// internally — lengths are NOT converted from Angstrom here).
+inline std::unique_ptr<PeriodicBoundary> buildPBC(const json& p) {
+    if (!p.contains("pbc")) return nullptr;
+
+    const json& pbcJson = p.at("pbc");
+    std::vector<std::vector<double>> lattice;
+
+    if (pbcJson.contains("a1")) lattice.push_back(pbcJson.at("a1").get<std::vector<double>>());
+    if (pbcJson.contains("a2")) lattice.push_back(pbcJson.at("a2").get<std::vector<double>>());
+    if (pbcJson.contains("a3")) lattice.push_back(pbcJson.at("a3").get<std::vector<double>>());
+
+    if (lattice.empty()) {
+        throw std::runtime_error("pbc block is present but contains no a1/a2/a3");
+    }
+    return std::make_unique<PeriodicBoundary>(lattice);
+}
+
 
 System Helium(const json& p) {
     std::vector<double> masses  = p.at("masses").get<std::vector<double>>();
@@ -14,7 +40,7 @@ System Helium(const json& p) {
     auto ham = std::make_unique<CoulombHamiltonian>(nP, nD, masses, charges);
     auto wf  = std::make_unique<HeliumWF>(alpha, nP, nD);
     wf->setParameters(p.at("wf_params_init").get<std::vector<double>>());
-    return { std::move(ham), std::move(wf), nP, nD };
+    return { std::move(ham), std::move(wf), buildPBC(p), nP, nD };
 }
 
 System MonolayerBiexciton(const json& p) {
@@ -29,7 +55,7 @@ System MonolayerBiexciton(const json& p) {
     auto ham = std::make_unique<EfficientRKHamiltonian>(nP, nD, masses, charges, rho0);
     auto wf  = std::make_unique<MonolayerBiexcitonWF>(alpha, nP, nD);
     wf->setParameters(p.at("wf_params_init").get<std::vector<double>>());
-    return { std::move(ham), std::move(wf), nP, nD };
+    return { std::move(ham), std::move(wf), buildPBC(p), nP, nD };
 }
 
 System TwistedHeterobilayerExciton(const json& p) {
@@ -88,7 +114,48 @@ System TwistedHeterobilayerExciton(const json& p) {
         nP, nD, masses, charges, moire, rho0, thickness, eps1, eps2, interacting);
     auto wf  = std::make_unique<TwistedBilayerExcitonWF>(
         initP, nP, nD, moire, thickness, interacting);
-    return { std::move(ham), std::move(wf), nP, nD };
+    return { std::move(ham), std::move(wf), buildPBC(p), nP, nD };
+}
+
+System ExcitonInASquarePotential(const json& p) {
+    double me        = p.at("me");
+    double mh        = p.at("mh");
+    double thickness = p.at("thickness");
+    double alpha_rk  = p.at("alpha");
+    double eps       = p.at("eps");
+    double eps1      = p.at("eps1");
+    double eps2      = p.at("eps2");
+    double V0        = p.at("V0");
+    double side      = p.at("side");
+
+    double rho0 = alpha_rk * 2 * thickness * eps / (eps1 + eps2) / Constants::a0;
+
+    bool interacting = p.value("interacting", true);
+
+    std::vector<double> masses  = { me, mh };
+    std::vector<double> charges = p.at("charges").get<std::vector<double>>();
+    std::vector<double> optP    = p.at("wf_params_init").get<std::vector<double>>();
+
+    std::vector<double> initP(5, 0.0);
+    if (interacting) {
+        // c1 is fixed by the Kato cusp conditionx
+        double c1 = (me * mh) / ((eps1 + eps2) * rho0 * (me + mh));
+        initP[0] = c1;
+        initP[1] = std::exp(optP[0]);  // c2 (config gives log-space)
+        initP[2] = std::exp(optP[1]);  // c3 (config gives log-space)
+        initP[3] = optP[2];            // lambda_e
+        initP[4] = optP[3];            // lambda_h
+    } else {
+        initP[3] = optP[0];            // lambda_e
+        initP[4] = optP[1];            // lambda_h
+    }
+
+    int nP = 2, nD = 2;
+    auto ham = std::make_unique<SquareHamiltonian>(
+        nP, nD, masses, charges, V0, side, eps1, eps2, rho0, thickness);
+    auto wf  = std::make_unique<ExcitonInASquarePotentialWF>(
+        initP, nP, nD, side, thickness, interacting);
+    return { std::move(ham), std::move(wf), buildPBC(p), nP, nD };
 }
 
 System ExcitonExciton(const json& p) {
@@ -107,7 +174,7 @@ System ExcitonExciton(const json& p) {
     auto wf  = std::make_unique<ExcitonExcitonWF>(
         alpha, nP, nD, me, mh, d, R);
     wf->setParameters(p.at("wf_params_init").get<std::vector<double>>());
-    return { std::move(ham), std::move(wf), nP, nD };
+    return { std::move(ham), std::move(wf), buildPBC(p), nP, nD };
 }
 
 System ExcitonExcitonNonInteract(const json& p) {
@@ -125,7 +192,7 @@ System ExcitonExcitonNonInteract(const json& p) {
     auto wf  = std::make_unique<ExcitonExcitonNonInteractWF>(
         alpha, nP, nD, me, mh, d);
     wf->setParameters(p.at("wf_params_init").get<std::vector<double>>());
-    return { std::move(ham), std::move(wf), nP, nD };
+    return { std::move(ham), std::move(wf), buildPBC(p), nP, nD };
 }
 
 
@@ -138,6 +205,7 @@ System buildSystem(const QMCConfig& cfg) {
     else if (name == "exciton_exciton")     return ExcitonExciton(p);
     else if (name == "exciton_exciton_non_interact")    return ExcitonExcitonNonInteract(p);
     else if (name == "twisted_heterobilayer_exciton")   return TwistedHeterobilayerExciton(p);
+    else if (name == "exciton_in_a_square_potential")   return ExcitonInASquarePotential(p);
     // ...
     else throw std::runtime_error("Unknown system: " + name);
 }

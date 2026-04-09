@@ -8,6 +8,7 @@
 #include "nlohmann/json.hpp"
 #include "hamiltonian.h"
 #include "wavefunction.h"
+#include "periodic_boundary.h"
 #include "utils.h"
 
 using json = nlohmann::json;
@@ -33,8 +34,9 @@ struct DMCConfig {
 };
 
 struct System {
-    std::unique_ptr<Hamiltonian>  hamiltonian;
-    std::unique_ptr<WaveFunction> wf;
+    std::unique_ptr<Hamiltonian>      hamiltonian;
+    std::unique_ptr<WaveFunction>     wf;
+    std::unique_ptr<PeriodicBoundary> pbc;   // optional, may be null
     int nParticles;
     int nDim;
 };

@@ -27,7 +27,7 @@
         "wf_params_init": [0.1, 0.1, 0.0, 0.0, 0.0, 0.0]
     },
     "output": {
-        "file": "results/twisted_heterobilayer_exciton/interacting"
+        "file": "results/twisted_heterobilayer_exciton"
     },
     "optimizer": {
         "enabled": true,

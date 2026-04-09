@@ -272,11 +272,23 @@ void DMC::initializeWalkers() {
 
         std::vector<double> current(stride);
 
+        std::uniform_real_distribution<double> fracDist(0.0, 1.0);
+
         #pragma omp for
         for (int w = 0; w < nWalkers; w++) {
-            
-            for (int i = 0; i < stride; i++) current[i] = initDist(initGen);
-            
+
+            if (pbc) {
+                // Sample uniformly inside the simulation cell: fractional
+                // coords in [0,1) mapped to Cartesian via the lattice matrix.
+                std::vector<double> frac(dim);
+                for (int p = 0; p < nParticles; ++p) {
+                    for (int i = 0; i < dim; ++i) frac[i] = fracDist(initGen);
+                    pbc->fractionalToCartesian(frac.data(), &current[p * dim]);
+                }
+            } else {
+                for (int i = 0; i < stride; i++) current[i] = initDist(initGen);
+            }
+
             double currentPsi = wf.trialWaveFunction(current.data());
             
             sampler.setStepSize(1.0); 

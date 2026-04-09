@@ -16,6 +16,7 @@
 #include "wavefunctions/twisted_bilayer_exciton_gaussian_wf.h"
 #include "wavefunctions/exciton_exciton_wf.h"
 #include "wavefunctions/exciton_exciton_non_interact_wf.h"
+#include "wavefunctions/exciton_in_a_square_potential_wf.h"
 
 #include "hamiltonians/coulomb_hamiltonian.h"
 #include "hamiltonians/efficient_rk_hamiltonian.h"
@@ -23,6 +24,7 @@
 #include "hamiltonians/heterobilayer_hamiltonian.h"
 #include "hamiltonians/exciton_exciton_coulomb_hamiltonian.h"
 #include "hamiltonians/exciton_exciton_non_interact_hamiltonian.h"
+#include "hamiltonians/square_hamiltonian.h"
 
 #include "system_config.h"
 
@@ -78,7 +80,7 @@ int main(int argc, char* argv[]) {
 
     if (cfg.dmc.enabled) {
         std::string datFile = cfg.outputFile + ".dat";
-        DMC dmc(ham, wf, cfg.dmc.deltaTau, nullptr,
+        DMC dmc(ham, wf, cfg.dmc.deltaTau, sys.pbc.get(),
                 Constants::N_WALKERS_TARGET, cfg.dmc.fixedNode, cfg.dmc.maxBranch);
         DMCResult dmcResult = dmc.run(datFile);
         results["dmc"] = {
