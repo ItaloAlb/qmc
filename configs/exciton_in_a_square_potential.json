@@ -6,35 +6,48 @@
         "charges": [-1.0, 1.0],
 
         "thickness": 6.15,
-        "alpha": 1.5,
+        "alpha": 1.8,
         "eps": 14.0,
-        "eps1": 4.5,
-        "eps2": 4.5,
+        "eps1": 1.0,
+        "eps2": 1.0,
 
-        "V0": 100.0,
+        "V0": 50.0,
         "side": 50.0,
 
+        "pbc": {
+            "a1": [472.41, 0.0],
+            "a2": [0.0, 472.41]
+        },
+
         "interacting": true,
-        "wf_params_init": [0.1, 0.1, 0.0, 0.0]
+        "wf_params_init": [0.1, -3.81697, -0.00651472, 0.0029211]
     },
     "output": {
-        "file": "results/exciton_in_a_square_potential"
+        "file": "results/exciton_in_a_square_potential/output"
     },
     "optimizer": {
-        "enabled": true,
+        "enabled": false,
         "learning_rate": 0.1,
         "max_epochs": 50,
         "samples_per_epoch": 100000
     },
     "vmc": {
-        "enabled": true,
+        "enabled": false,
         "n_steps": 10000000,
         "n_equilibration": 1000000
     },
     "dmc": {
         "enabled": true,
         "delta_tau": 0.01,
-        "fixed_node": true,
-        "max_branch": true
+        "fixed_node": false,
+        "max_branch": true,
+        "n_block_steps": 1000,
+        "n_steps_per_block": 100,
+        "running_average_window": 100,
+        "dump_walkers": true,
+        "descendant_weighting": true,
+        "t_lag_blocks": 300,
+        "tagging_interval_blocks": 10
+
     }
 }

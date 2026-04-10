@@ -31,6 +31,13 @@ struct DMCConfig {
     double deltaTau;
     bool fixedNode;
     bool maxBranch;
+    bool dumpWalkers;
+    bool descendantWeighting;
+    int tLagBlocks;
+    int taggingIntervalBlocks;
+    int nBlockSteps;
+    int nStepsPerBlock;
+    int runningAverageWindow;
 };
 
 struct System {
@@ -77,7 +84,14 @@ struct QMCConfig {
             d.at("enabled"),
             d.at("delta_tau"),
             d.at("fixed_node"),
-            d.at("max_branch")
+            d.at("max_branch"),
+            d.value("dump_walkers", false),
+            d.value("descendant_weighting", false),
+            d.value("t_lag_blocks", 10),
+            d.value("tagging_interval_blocks", 1),
+            d.value("n_block_steps", 1000),
+            d.value("n_steps_per_block", 100),
+            d.value("running_average_window", 100)
         };
 
         return cfg;

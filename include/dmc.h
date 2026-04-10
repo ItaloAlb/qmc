@@ -39,13 +39,23 @@ class DMC {
         const PeriodicBoundary* pbc;
 
         int nWalkers, nParticles, dim, stride, blockTotalMoves, blockAcceptedMoves;
+        int nBlockSteps, nStepsPerBlock, runningAverageWindow;
+        int tLagBlocks;
         double deltaTau, invDeltaTau, referenceEnergy, instEnergy, meanEnergy;
-        bool isFixedNode, isMaxBranch;
+        bool isFixedNode, isMaxBranch, dumpWalkers, descendantWeighting;
 
         std::vector<std::mt19937> gens;
         std::vector<double> positions;
         std::vector<double> drifts;
         std::vector<double> localEnergy;
+        std::vector<double> newPositionsScratch;
+        std::vector<double> newDriftsScratch;
+        std::vector<double> newLocalEnergiesScratch;
+        std::deque<std::vector<int>> ancestorsHistory;
+        std::deque<std::vector<int>> newAncestorsHistory;
+        std::deque<std::vector<double>> taggedPositionsHistory;
+        std::deque<int> taggingBlocksHistory;
+        int taggingIntervalBlocks;
 
         void initializeWalkers();
         void updateReferenceEnergy(double blockEnergy, double blockTime);
@@ -63,7 +73,14 @@ class DMC {
             const PeriodicBoundary* pbc = nullptr,
             int nWalkers = Constants::N_WALKERS_TARGET,
             bool isFixedNode = false,
-            bool isMaxBranch = false);
+            bool isMaxBranch = false,
+            bool dumpWalkers = false,
+            bool descendantWeighting = false,
+            int tLagBlocks = 10,
+            int taggingIntervalBlocks = 1,
+            int nBlockSteps = 1000,
+            int nStepsPerBlock = 100,
+            int runningAverageWindow = 100);
 
         DMCResult run(const std::string& outputFile = "qmc.dat");
 };

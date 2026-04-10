@@ -29,7 +29,7 @@
         "wf_params_init": [0.0, 0.0, 0.0, 0.0]
     },
     "output": {
-        "file": "results/twisted_heterobilayer_exciton_non_interacting"
+        "file": "results/twisted_heterobilayer_exciton_non_interact/output"
     },
     "optimizer": {
         "enabled": true,
@@ -46,6 +46,11 @@
         "enabled": true,
         "delta_tau": 0.01,
         "fixed_node": true,
-        "max_branch": true
+        "max_branch": true,
+        "dump_walkers": false,
+        "descendant_weighting": false,
+        "n_block_steps": 1000,
+        "n_steps_per_block": 100,
+        "running_average_window": 100
     }
 }

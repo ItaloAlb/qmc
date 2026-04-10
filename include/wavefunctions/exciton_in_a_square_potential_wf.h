@@ -13,7 +13,7 @@ public:
     ExcitonInASquarePotentialWF(const std::vector<double>& params, int nParticles, int dim,
                           double a_, double thickness_, bool interacting_ = true)
         : WaveFunction(params, nParticles, dim),
-          a(a_),
+          a(a_ / a0),
           thickness(thickness_),
           thicknessSquared(thickness_ * thickness_),
           interacting(interacting_) {}

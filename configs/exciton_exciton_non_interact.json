@@ -11,7 +11,7 @@
         "nDim": 2
     },
     "output": {
-        "file": "output"
+        "file": "results/exciton_exciton_non_interact/output"
     },
     "optimizer": {
         "enabled": true,
@@ -28,6 +28,11 @@
         "enabled": true,
         "delta_tau": 0.01,
         "fixed_node": true,
-        "max_branch": true
+        "max_branch": true,
+        "dump_walkers": false,
+        "descendant_weighting": false,
+        "n_block_steps": 1000,
+        "n_steps_per_block": 100,
+        "running_average_window": 100
     }
 }
