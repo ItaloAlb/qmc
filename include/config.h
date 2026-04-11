@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <memory>
 #include "nlohmann/json.hpp"
+#include "constants.h"
 #include "hamiltonian.h"
 #include "wavefunction.h"
 #include "periodic_boundary.h"
@@ -38,6 +39,7 @@ struct DMCConfig {
     int nBlockSteps;
     int nStepsPerBlock;
     int runningAverageWindow;
+    int nWalkersTarget;
 };
 
 struct System {
@@ -91,7 +93,8 @@ struct QMCConfig {
             d.value("tagging_interval_blocks", 1),
             d.value("n_block_steps", 1000),
             d.value("n_steps_per_block", 100),
-            d.value("running_average_window", 100)
+            d.value("running_average_window", 100),
+            d.value("n_walkers_target", Constants::N_WALKERS_TARGET)
         };
 
         return cfg;

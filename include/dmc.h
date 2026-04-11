@@ -38,7 +38,7 @@ class DMC {
         WaveFunction& wf;
         const PeriodicBoundary* pbc;
 
-        int nWalkers, nParticles, dim, stride, blockTotalMoves, blockAcceptedMoves;
+        int nWalkers, nWalkersTarget, nParticles, dim, stride, blockTotalMoves, blockAcceptedMoves;
         int nBlockSteps, nStepsPerBlock, runningAverageWindow;
         int tLagBlocks;
         double deltaTau, invDeltaTau, referenceEnergy, instEnergy, meanEnergy;
@@ -54,6 +54,7 @@ class DMC {
         std::deque<std::vector<int>> ancestorsHistory;
         std::deque<std::vector<int>> newAncestorsHistory;
         std::deque<std::vector<double>> taggedPositionsHistory;
+        std::deque<int> taggedCountHistory;
         std::deque<int> taggingBlocksHistory;
         int taggingIntervalBlocks;
 
@@ -71,7 +72,7 @@ class DMC {
             WaveFunction& wf,
             double deltaTau,
             const PeriodicBoundary* pbc = nullptr,
-            int nWalkers = Constants::N_WALKERS_TARGET,
+            int nWalkersTarget = Constants::N_WALKERS_TARGET,
             bool isFixedNode = false,
             bool isMaxBranch = false,
             bool dumpWalkers = false,

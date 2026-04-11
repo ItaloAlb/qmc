@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
     if (cfg.dmc.enabled) {
         std::string datFile = cfg.outputFile + ".dat";
         DMC dmc(ham, wf, cfg.dmc.deltaTau, sys.pbc.get(),
-                Constants::N_WALKERS_TARGET, cfg.dmc.fixedNode, cfg.dmc.maxBranch,
+                cfg.dmc.nWalkersTarget, cfg.dmc.fixedNode, cfg.dmc.maxBranch,
                 cfg.dmc.dumpWalkers, cfg.dmc.descendantWeighting,
                 cfg.dmc.tLagBlocks, cfg.dmc.taggingIntervalBlocks,
                 cfg.dmc.nBlockSteps, cfg.dmc.nStepsPerBlock,

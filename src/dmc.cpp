@@ -6,7 +6,7 @@ DMC::DMC(const Hamiltonian& hamiltonian_,
         WaveFunction& wf_,
         double deltaTau_,
         const PeriodicBoundary* pbc_,
-        int nWalkers_,
+        int nWalkersTarget_,
         bool isFixedNode_,
         bool isMaxBranch_,
         bool dumpWalkers_,
@@ -20,7 +20,8 @@ DMC::DMC(const Hamiltonian& hamiltonian_,
       wf(wf_),
       pbc(pbc_),
       deltaTau(deltaTau_),
-      nWalkers(nWalkers_),
+      nWalkers(nWalkersTarget_),
+      nWalkersTarget(nWalkersTarget_),
       isFixedNode(isFixedNode_),
       isMaxBranch(isMaxBranch_),
       dumpWalkers(dumpWalkers_),
@@ -241,7 +242,7 @@ double DMC::branchGreenFunction(double newLocalEnergy,
 }
 
 void DMC::updateReferenceEnergy(double blockEnergy, double blockTime) {
-    double ratio = static_cast<double>(nWalkers) / static_cast<double>(Constants::N_WALKERS_TARGET);
+    double ratio = static_cast<double>(nWalkers) / static_cast<double>(nWalkersTarget);
     if (ratio < Constants::MIN_POPULATION_RATIO) ratio = Constants::MIN_POPULATION_RATIO;
     referenceEnergy = blockEnergy - 1 / blockTime * std::log(ratio);
 }
@@ -270,7 +271,7 @@ void DMC::initializeWalkers() {
 
         std::vector<double> current(stride);
 
-        std::uniform_real_distribution<double> fracDist(0.0, 1.0);
+        std::uniform_real_distribution<double> fracDist(-0.5, 0.5);
 
         #pragma omp for
         for (int w = 0; w < nWalkers; w++) {
@@ -374,6 +375,7 @@ DMCResult DMC::run(const std::string& outputFile) {
             ancestorsHistory.emplace_back(nWalkers);
             newAncestorsHistory.emplace_back(Constants::MAX_N_WALKERS);
             taggedPositionsHistory.emplace_back(nWalkers * stride);
+            taggedCountHistory.emplace_back(nWalkers);
             taggingBlocksHistory.emplace_back(j);
 
             std::vector<int>& currentAncestors = ancestorsHistory.back();
@@ -389,9 +391,8 @@ DMCResult DMC::run(const std::string& outputFile) {
 
         // --- Descendant weighting: harvest completed tagging events ---
         while (!taggingBlocksHistory.empty() && (j - taggingBlocksHistory.front()) >= tLagBlocks) {
-            std::vector<int>& currentAncestors = ancestorsHistory.front();
+            int currentNTagged = taggedCountHistory.front();
             std::vector<double>& currentTaggedPositions = taggedPositionsHistory.front();
-            int currentNTagged = currentAncestors.size();
 
             std::vector<int32_t> descendantCount(currentNTagged, 0);
             for (int i = 0; i < nWalkers; ++i) {
@@ -411,6 +412,7 @@ DMCResult DMC::run(const std::string& outputFile) {
             ancestorsHistory.pop_front();
             newAncestorsHistory.pop_front();
             taggedPositionsHistory.pop_front();
+            taggedCountHistory.pop_front();
             taggingBlocksHistory.pop_front();
         }
 

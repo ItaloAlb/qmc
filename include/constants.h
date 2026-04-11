@@ -11,7 +11,7 @@ namespace Constants {
 
     //DMC
     const int MAX_N_WALKERS = 200000;
-    const int N_WALKERS_TARGET = 5000;
+    const int N_WALKERS_TARGET = 15000;
     const int MAX_BRANCH_FACTOR = 3;
     const double MIN_POPULATION_RATIO = 1e-4;
 

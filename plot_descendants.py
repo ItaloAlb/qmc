@@ -50,46 +50,31 @@ def plot_2d_exciton(positions, weights, bins, output):
     dx = xe - xh
     dy = ye - yh
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
-
-    # electron density
-    ax = axes[0]
-    h, xedges, yedges = np.histogram2d(xe, ye, bins=bins, weights=weights, density=True)
-    im = ax.pcolormesh(xedges, yedges, h.T, cmap="inferno")
-    fig.colorbar(im, ax=ax)
-    ax.set_xlabel(r"x ($a_0$)")
-    ax.set_ylabel(r"y ($a_0$)")
-    ax.set_title(r"electron $|\Phi_0|^2$")
-    ax.set_aspect("equal")
-
-    # hole density
-    ax = axes[1]
-    h, xedges, yedges = np.histogram2d(xh, yh, bins=bins, weights=weights, density=True)
-    im = ax.pcolormesh(xedges, yedges, h.T, cmap="inferno")
-    fig.colorbar(im, ax=ax)
-    ax.set_xlabel(r"x ($a_0$)")
-    ax.set_ylabel(r"y ($a_0$)")
-    ax.set_title(r"hole $|\Phi_0|^2$")
-    ax.set_aspect("equal")
-
-    # relative e-h density
-    ax = axes[2]
-    h, xedges, yedges = np.histogram2d(dx, dy, bins=bins, weights=weights, density=True)
-    im = ax.pcolormesh(xedges, yedges, h.T, cmap="inferno")
-    fig.colorbar(im, ax=ax)
-    ax.set_xlabel(r"$x_e - x_h$ ($a_0$)")
-    ax.set_ylabel(r"$y_e - y_h$ ($a_0$)")
-    ax.set_title(r"relative $|\Phi_0|^2$")
-    ax.set_aspect("equal")
-
-    # effective sample size diagnostic
     N_eff = weights.sum()**2 / (weights**2).sum()
-    fig.suptitle(f"Descendant weighting  |  $N_{{eff}} = {N_eff:.0f}$ / {len(weights)}", y=1.02)
 
-    fig.tight_layout()
+    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+
+    titles = [r"electron $|\Phi_0|^2$", r"hole $|\Phi_0|^2$", r"relative $|\Phi_0|^2$"]
+    x_data = [xe, xh, dx]
+    y_data = [ye, yh, dy]
+    xlabels = [r"x ($a_0$)", r"x ($a_0$)", r"$x_e - x_h$ ($a_0$)"]
+    ylabels = [r"y ($a_0$)", r"y ($a_0$)", r"$y_e - y_h$ ($a_0$)"]
+
+    for i, ax in enumerate(axes):
+        h, xedges, yedges = np.histogram2d(x_data[i], y_data[i], bins=bins,
+                                           weights=weights, density=True)
+        im = ax.pcolormesh(xedges, yedges, h.T, cmap="inferno")
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        ax.set_xlabel(xlabels[i])
+        ax.set_ylabel(ylabels[i])
+        ax.set_title(titles[i])
+        ax.set_aspect("equal", adjustable="box")
+
+    fig.suptitle(f"Descendant weighting  |  $N_{{eff}} = {N_eff:.0f}$ / {len(weights)}")
+    fig.subplots_adjust(wspace=0.4)
 
     if output:
-        fig.savefig(output, dpi=200, bbox_inches="tight")
+        fig.savefig(output, dpi=200)
         print(f"Saved to {output}")
     else:
         plt.show()
