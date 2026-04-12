@@ -11,14 +11,16 @@ private:
     double thicknessSquared;
     double invrho0;
 
+    bool interacting;
+
 public:
     SquareHamiltonian(int nParticles, int dim,
                        const std::vector<double>& masses,
                        const std::vector<double>& charges,
                        double V0_, double side_,
-                       double eps1_, double eps2_, double rho0_, double thickness_)
+                       double eps1_, double eps2_, double rho0_, double thickness_, bool interacting_ = true)
         : Hamiltonian(nParticles, dim, masses, charges), 
-          V0(V0_ / HARTREE), a(side_ / a0), eps1(eps1_), eps2(eps2_) {
+          V0(V0_ / HARTREE), a(side_ / a0), eps1(eps1_), eps2(eps2_), interacting(interacting_) {
           
         this->thicknessSquared = thickness_ * thickness_;
         this->invrho0 = 1.0 / rho0_;
@@ -47,9 +49,9 @@ public:
 
         double externalPotential = (-1.0 * Phi_electron) + (1.0 * Phi_hole);
 
-        double interactionPotential = getHeterobilayerRytovaKeldysh(position);
+        if(interacting) { return externalPotential + getHeterobilayerRytovaKeldysh(position); }
 
-        return externalPotential + interactionPotential;
+        return externalPotential;
     }
 
     double getHeterobilayerRytovaKeldysh(const double* position) const {

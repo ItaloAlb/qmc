@@ -17,6 +17,7 @@
 #include "wavefunctions/exciton_exciton_wf.h"
 #include "wavefunctions/exciton_exciton_non_interact_wf.h"
 #include "wavefunctions/exciton_in_a_square_potential_wf.h"
+#include "wavefunctions/exciton_in_a_triangle_potential_wf.h"
 
 #include "hamiltonians/coulomb_hamiltonian.h"
 #include "hamiltonians/efficient_rk_hamiltonian.h"
@@ -25,6 +26,7 @@
 #include "hamiltonians/exciton_exciton_coulomb_hamiltonian.h"
 #include "hamiltonians/exciton_exciton_non_interact_hamiltonian.h"
 #include "hamiltonians/square_hamiltonian.h"
+#include "hamiltonians/exciton_triangle_hamiltonian.h"
 
 #include "system_config.h"
 

@@ -1,12 +1,12 @@
 {
-    "system": "exciton_in_a_square_potential",
+    "system": "exciton_in_a_triangle_potential",
     "params": {
         "me": 0.5,
         "mh": 0.5,
         "charges": [-1.0, 1.0],
 
         "thickness": 6.15,
-        "alpha": 1.0,
+        "alpha": 0.5,
         "eps": 14.0,
         "eps1": 1.0,
         "eps2": 1.0,
@@ -16,14 +16,14 @@
 
         "pbc": {
             "a1": [900.0, 0.0],
-            "a2": [0.0, 900.0]
+            "a2": [0.0, 779.422863406] 
         },
 
-        "interacting": false,
-        "wf_params_init": [0.10000000000000007, -3.81697, -0.00651472, 0.0029211]
+        "interacting": true,
+        "wf_params_init": [0.1000000000000000, -2.9, 1.0, 1,0]
     },
     "output": {
-        "file": "results/exciton_in_a_square_potential/output"
+        "file": "results/exciton_in_a_triangle_potential/output"
     },
     "optimizer": {
         "enabled": true,
@@ -41,7 +41,7 @@
         "delta_tau": 0.01,
         "fixed_node": false,
         "max_branch": true,
-        "n_walkers_target": 10000,
+        "n_walkers_target": 50000,
         "n_block_steps": 1000,
         "n_steps_per_block": 100,
         "running_average_window": 100,

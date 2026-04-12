@@ -77,8 +77,8 @@ class DMC {
             bool isMaxBranch = false,
             bool dumpWalkers = false,
             bool descendantWeighting = false,
-            int tLagBlocks = 10,
-            int taggingIntervalBlocks = 1,
+            int tLagBlocks = 300,
+            int taggingIntervalBlocks = 10,
             int nBlockSteps = 1000,
             int nStepsPerBlock = 100,
             int runningAverageWindow = 100);
