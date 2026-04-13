@@ -1,6 +1,7 @@
 # --- Configuração Mínima e Definição do Projeto ---
 # Define a versão mínima do CMake necessária. 3.10 é uma escolha moderna e segura.
 cmake_minimum_required(VERSION 3.10)
+add_compile_definitions(_USE_MATH_DEFINES)
 
 # Define o nome do projeto, sua versão e a linguagem de programação.
 project(

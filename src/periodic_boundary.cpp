@@ -46,22 +46,68 @@ void PeriodicBoundary::applyPeriodicBoundary(double* position) const {
 }
 
 void PeriodicBoundary::getDisplacement(const double* r1, const double* r2, double* outDisplacement) const {
-    std::vector<double> s(dim);
-    for (int i = 0; i < dim; ++i) s[i] = r1[i] - r2[i];
+    // 1. Raw Cartesian displacement
+    std::vector<double> cart_disp(dim);
+    for (int i = 0; i < dim; ++i) cart_disp[i] = r1[i] - r2[i];
 
+    // 2. Fractional displacement wrapped to the home parallelepiped [-0.5, 0.5]
+    std::vector<double> frac_disp(dim);
     for (int i = 0; i < dim; ++i) {
         double tmp = 0.0;
         for (int j = 0; j < dim; ++j) {
-            tmp += invMatrixCell[i * dim + j] * s[j];
+            tmp += invMatrixCell[i * dim + j] * cart_disp[j];
         }
-        s[i] = tmp - std::round(tmp);
+        frac_disp[i] = tmp - std::round(tmp); 
     }
 
+    // 3. Convert wrapped fractional displacement back to a base Cartesian displacement
+    std::vector<double> base_cart_disp(dim, 0.0);
     for (int i = 0; i < dim; ++i) {
-        outDisplacement[i] = 0.0;
         for (int j = 0; j < dim; ++j) {
-            outDisplacement[i] += matrixCell[i * dim + j] * s[j];
+            base_cart_disp[i] += matrixCell[i * dim + j] * frac_disp[j];
         }
+    }
+
+    // 4. Search neighboring images for the absolute shortest Cartesian distance
+    double min_dist_sq = -1.0;
+    std::vector<int> offset(dim, -1); // Initialize offset vector to [-1, -1, ...]
+    
+    // Base-3 counter loop to check all {-1, 0, 1} combinations dynamically for any 'dim'
+    while (true) {
+        // Apply the integer fractional offset converted to Cartesian space
+        std::vector<double> candidate_disp = base_cart_disp;
+        for (int i = 0; i < dim; ++i) {
+            for (int j = 0; j < dim; ++j) {
+                candidate_disp[i] += matrixCell[i * dim + j] * static_cast<double>(offset[j]);
+            }
+        }
+        
+        // Calculate squared distance for this image
+        double dist_sq = 0.0;
+        for (int i = 0; i < dim; ++i) {
+            dist_sq += candidate_disp[i] * candidate_disp[i];
+        }
+        
+        // Track the shortest vector found
+        if (min_dist_sq < 0 || dist_sq < min_dist_sq) {
+            min_dist_sq = dist_sq;
+            for (int i = 0; i < dim; ++i) {
+                outDisplacement[i] = candidate_disp[i];
+            }
+        }
+
+        // Increment offset like a base-3 counter (-1, 0, 1)
+        int idx = 0;
+        while (idx < dim) {
+            offset[idx]++;
+            if (offset[idx] > 1) {
+                offset[idx] = -1; // Reset this digit and carry over
+                idx++;
+            } else {
+                break; // No carry, stop incrementing
+            }
+        }
+        if (idx == dim) break; // We have exhausted all 3^dim combinations
     }
 }
 

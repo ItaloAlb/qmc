@@ -16,7 +16,7 @@
 
         "pbc": {
             "a1": [900.0, 0.0],
-            "a2": [0.0, 779.422863406] 
+            "a2": [450.0, 779.422863406] 
         },
 
         "interacting": true,
@@ -41,7 +41,7 @@
         "delta_tau": 0.01,
         "fixed_node": false,
         "max_branch": true,
-        "n_walkers_target": 50000,
+        "n_walkers_target": 5000,
         "n_block_steps": 1000,
         "n_steps_per_block": 100,
         "running_average_window": 100,
