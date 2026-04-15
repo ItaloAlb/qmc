@@ -271,7 +271,7 @@ void DMC::initializeWalkers() {
 
         std::vector<double> current(stride);
 
-        std::uniform_real_distribution<double> fracDist(-0.5, 0.5);
+        std::uniform_real_distribution<double> fracDist(0.0, 1.0);
 
         #pragma omp for
         for (int w = 0; w < nWalkers; w++) {

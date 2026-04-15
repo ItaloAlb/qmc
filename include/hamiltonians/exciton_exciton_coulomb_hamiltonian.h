@@ -6,12 +6,13 @@ private:
     double mh;
     double d;
     double R;
+    bool interacting;
 public:
     ExcitonExcitonCoulombHamiltonian(int nParticles, int dim,
                        const std::vector<double>& masses,
                        const std::vector<double>& charges,
-                       double me, double mh, double d, double R)
-        : Hamiltonian(nParticles, dim, masses, charges), me(me), mh(mh), d(d), R(R) {}
+                       double me, double mh, double d, double R, bool interacting = true)
+        : Hamiltonian(nParticles, dim, masses, charges), me(me), mh(mh), d(d), R(R), interacting(interacting) {}
 
     double getPotential(const double* position) const override {
         std::vector<double> r(dim, 0.0);
@@ -54,9 +55,11 @@ public:
 
         potentialEnergy -= 1.0 / std::sqrt(r2_sq + d_sq);
 
+        if (!interacting) return potentialEnergy;
+
         double mag3 = std::sqrt(term3_sq);
         if (mag3 < Constants::MIN_DISTANCE) mag3 = Constants::MIN_DISTANCE;
-        potentialEnergy += 1.0 / mag3;
+        potentialEnergy += 1.0 / mag3;  
 
         double mag4 = std::sqrt(term4_sq);
         if (mag4 < Constants::MIN_DISTANCE) mag4 = Constants::MIN_DISTANCE;

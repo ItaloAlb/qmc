@@ -5,11 +5,11 @@
         "mh": 1.0,
         "d": 0.5,
         "R": 2.0,
-        "charges": [-1.0, -1.0],
-        "wf_alpha": [1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, -1.0, 1.0],
-        "wf_params_init": [3.4719, 10.4479, 13.1154, 19.7361, 3.64016, 1.71054, 3.43893, -0.349741, 4.41446],
+        "charges": [-1.0, 1.0],
         "nParticles": 2,
-        "nDim": 2
+        "nDim": 2,
+        "interacting": true,
+        "wf_params_init": [2.20353, -0.206604, 2.13437, -0.177941, -0.102956, 0.851758, 1.98113, 0.851758, 1.98113]
     },
     "output": {
         "file": "results/exciton_exciton/output"
@@ -27,13 +27,16 @@
     },
     "dmc": {
         "enabled": true,
-        "delta_tau": 0.01,
-        "fixed_node": true,
+        "delta_tau": 0.05,
+        "fixed_node": false,
         "max_branch": true,
+        "n_walkers_target": 50000,
+        "n_block_steps": 1000,
+        "n_steps_per_block": 20,
+        "running_average_window": 100,
         "dump_walkers": false,
         "descendant_weighting": false,
-        "n_block_steps": 1000,
-        "n_steps_per_block": 100,
-        "running_average_window": 100
+        "t_lag_blocks": 300,
+        "tagging_interval_blocks": 10
     }
 }

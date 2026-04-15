@@ -1,4 +1,6 @@
 // src/main.cpp
+#include <filesystem>
+
 #include "dmc.h"
 #include "vmc.h"
 #include "optimizer.h"
@@ -40,6 +42,10 @@ int main(int argc, char* argv[]) {
 
     std::random_device rd;
     Metropolis sampler(rd(), 1.0, sys.nParticles, sys.nDim);
+
+    auto outputDir = std::filesystem::path(cfg.outputFile).parent_path();
+    if (!outputDir.empty())
+        std::filesystem::create_directories(outputDir);
 
     json results;
     results["params"] = cfg.params;

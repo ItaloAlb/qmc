@@ -34,20 +34,12 @@ public:
 
         // Equilateral-triangle tiling with primitive vectors
         //   a1 = (a, 0),  a2 = (a/2, a*sqrt(3)/2).
-        // The origin is placed at the centroid of an "up" triangle so that
-        // (0,0) sits at a +V0 maximum — mirrors the square version where the
-        // origin is the center of a cell.
+        // Origin at a lattice vertex so the tiling aligns with PBC edges.
         auto Phi = [this](double x, double y) {
             double invSqrt3 = 1.0 / std::sqrt(3.0);
 
-            // Centroid of the reference "up" triangle {0, a1, a2} is
-            // (a/2, a*sqrt(3)/6). Shift the point so that origin maps
-            // to that centroid.
-            double xs = x + 0.5 * this->a;
-            double ys = y + this->a * invSqrt3 * 0.5;  // a/(2*sqrt(3)) = a*sqrt(3)/6
-
-            double u = xs / this->a - ys * invSqrt3 / this->a;
-            double v = 2.0 * ys * invSqrt3 / this->a;
+            double u = x / this->a - y * invSqrt3 / this->a;
+            double v = 2.0 * y * invSqrt3 / this->a;
 
             double u_frac = u - std::floor(u);
             double v_frac = v - std::floor(v);
