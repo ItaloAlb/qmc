@@ -3,15 +3,19 @@
 Parameter sweep for QMC.
 
 Usage:
-    python3 run_sweep.py <base_config.json> <param_path> <start> <stop> [step]
-    python3 run_sweep.py <base_config.json> --dt-max <dt_max>
+    python3 run_sweep.py <config> <param_path> <start> <stop> [step]
+    python3 run_sweep.py <config> --dt-max <dt_max>
+    python3 run_sweep.py <config> <param_path> <start> <stop> [step] --dt-max <dt_max>
 
 Examples:
     # Generic parameter sweep
-    python3 run_sweep.py configs/exciton_exciton.json params.R 1.0 6.0 0.5
+    python3 run_sweep.py configs/exciton_exciton.json params.R 1.0 7.0 0.5
 
-    # Time step extrapolation (Lee thesis: dt_max and dt_max/4, effort 1:8)
+    # Time step extrapolation only (Lee thesis: dt_max and dt_max/4, effort 1:8)
     python3 run_sweep.py configs/exciton_exciton.json --dt-max 0.02
+
+    # Parameter sweep + dt extrapolation at each point
+    python3 run_sweep.py configs/exciton_exciton.json params.R 1.0 7.0 0.5 --dt-max 0.05
 
 The <param_path> uses dot notation to point at any value inside the config,
 e.g. 'params.R', 'params.d', 'dmc.delta_tau', 'params.me'.
@@ -23,6 +27,9 @@ The --dt-max flag triggers the optimal 2-point extrapolation protocol:
   - Runs at dt_max (1/9 of total effort) and dt_max/4 (8/9 of effort)
   - Keeps block_time constant by adjusting n_steps_per_block
   - Extrapolates E(dt) -> E(0) using linear fit
+
+When combined with a parameter sweep, dt extrapolation is performed at
+each sweep point, and the extrapolated E(dt->0) is plotted.
 """
 import json
 import subprocess
@@ -36,6 +43,7 @@ import matplotlib.pyplot as plt
 
 QMC_EXECUTABLE = "./build/bin/qmc"
 RESULTS_DIR = "results/sweep"
+MAX_RETRIES = 3
 
 
 def set_nested(d, path, value):
@@ -62,29 +70,66 @@ def adjust_block_time(config, base_block_time):
     return n_steps
 
 
+def dmc_is_valid(data, output_base):
+    """Check if a DMC run produced valid results (population didn't die).
+    Checks both the energy from the results JSON and the final population
+    from the .dat file (column 4: nWalkers)."""
+    if data is None or "dmc" not in data:
+        return False
+    dmc = data["dmc"]
+    if dmc["energy"] == 0.0 or dmc["std_error"] == 0.0:
+        return False
+    dat_path = output_base + ".dat"
+    if os.path.exists(dat_path):
+        with open(dat_path) as f:
+            lines = f.readlines()
+        if lines:
+            last_cols = lines[-1].split()
+            if len(last_cols) >= 5:
+                final_population = int(last_cols[4])
+                if final_population == 0:
+                    return False
+    return True
+
+
 def run_single(config, label, run_dir):
     os.makedirs(run_dir, exist_ok=True)
     output_base = os.path.join(run_dir, "qmc")
     config["output"]["file"] = output_base
 
     config_path = os.path.join(run_dir, "config.json")
-    with open(config_path, "w") as f:
-        json.dump(config, f, indent=4)
 
-    print(f"[{label}] Running QMC...")
-    result = subprocess.run([QMC_EXECUTABLE, config_path])
+    for attempt in range(1, MAX_RETRIES + 1):
+        with open(config_path, "w") as f:
+            json.dump(config, f, indent=4)
 
-    if result.returncode != 0:
-        print(f"[{label}] ERROR (exit code {result.returncode})")
-        return None
+        if attempt == 1:
+            print(f"[{label}] Running QMC...")
+        else:
+            print(f"[{label}] Retry {attempt}/{MAX_RETRIES} (population died)...")
 
-    results_path = output_base + "_results.json"
-    if not os.path.exists(results_path):
-        print(f"[{label}] Results file not found")
-        return None
+        result = subprocess.run([QMC_EXECUTABLE, config_path])
 
-    with open(results_path) as f:
-        return json.load(f)
+        if result.returncode != 0:
+            print(f"[{label}] ERROR (exit code {result.returncode})")
+            continue
+
+        results_path = output_base + "_results.json"
+        if not os.path.exists(results_path):
+            print(f"[{label}] Results file not found")
+            continue
+
+        with open(results_path) as f:
+            data = json.load(f)
+
+        if config.get("dmc", {}).get("enabled", False) and not dmc_is_valid(data, output_base):
+            print(f"[{label}] Population died (energy=0 or population=0) - will retry")
+            continue
+
+        return data
+
+    print(f"[{label}] FAILED after {MAX_RETRIES} attempts")
+    return None
 
 
 def dt_extrapolation(results):
@@ -112,31 +157,54 @@ def dt_extrapolation(results):
     return E0, sigma_E0, kappa
 
 
-def run_dt_extrapolation(base_config, dt_max, total_blocks):
+def compute_dt_runs(dt_max, block_time, base_blocks):
+    """Compute the two dt-extrapolation runs with proper effort-aware 1:8 split.
+
+    block_time is kept constant: n_steps_per_block = round(block_time / dt).
+    Effort = n_block_steps * n_steps_per_block, so runs at smaller dt cost
+    more per block.  The 1:8 optimal split (Lee thesis) requires:
+        blocks_small = 8 * blocks_large * steps_large / steps_small
+    For dt_small = dt_max/4 this gives blocks_small = 2 * blocks_large.
+    """
+    dt_small = dt_max / 4.0
+    steps_large = max(1, round(block_time / dt_max))
+    steps_small = max(1, round(block_time / dt_small))
+
+    blocks_large = base_blocks
+    blocks_small = max(1, round(8 * blocks_large * steps_large / steps_small))
+
+    effort_large = blocks_large * steps_large
+    effort_small = blocks_small * steps_small
+
+    return [
+        {"dt": dt_max,   "n_block_steps": blocks_large,
+         "n_steps_per_block": steps_large, "label": f"dt_{dt_max:.6f}"},
+        {"dt": dt_small,  "n_block_steps": blocks_small,
+         "n_steps_per_block": steps_small, "label": f"dt_{dt_small:.6f}"},
+    ], effort_large, effort_small
+
+
+def run_dt_extrapolation(base_config, dt_max, base_blocks):
     """Run the 2-point dt extrapolation protocol from Lee's thesis."""
     dt_small = dt_max / 4.0
     base_dt = base_config["dmc"].get("delta_tau", 0.01)
     base_nsb = base_config["dmc"].get("n_steps_per_block", 100)
-    base_block_time = base_dt * base_nsb
+    block_time = base_dt * base_nsb
 
-    # Effort split: 1/9 on dt_max, 8/9 on dt_max/4
-    # This comes from optimal variance: T1/T2 = (dt2/dt1)^(3/2) = 4^(3/2) = 8
-    blocks_large = max(1, round(total_blocks / 9))
-    blocks_small = total_blocks - blocks_large
+    runs, effort_large, effort_small = compute_dt_runs(dt_max, block_time, base_blocks)
 
     sweep_name = os.path.splitext(os.path.basename(sys.argv[1]))[0] if len(sys.argv) > 1 else "unknown"
     sweep_dir = os.path.join(RESULTS_DIR, f"{sweep_name}_dt_extrapolation")
-
-    runs = [
-        {"dt": dt_max,   "n_block_steps": blocks_large, "label": f"dt_{dt_max:.6f}"},
-        {"dt": dt_small,  "n_block_steps": blocks_small, "label": f"dt_{dt_small:.6f}"},
-    ]
+    os.makedirs(sweep_dir, exist_ok=True)
 
     print(f"Time step extrapolation (Lee thesis protocol)")
-    print(f"  dt_max     = {dt_max}")
-    print(f"  dt_max/4   = {dt_small}")
-    print(f"  block_time = {base_block_time:.4f}")
-    print(f"  effort split: {blocks_large} blocks (dt_max) + {blocks_small} blocks (dt_max/4)")
+    print(f"  dt_max     = {dt_max}  ({runs[0]['n_block_steps']} blocks, "
+          f"{runs[0]['n_steps_per_block']} steps/block)")
+    print(f"  dt_max/4   = {dt_small}  ({runs[1]['n_block_steps']} blocks, "
+          f"{runs[1]['n_steps_per_block']} steps/block)")
+    print(f"  block_time = {block_time:.4f}")
+    print(f"  effort split: {effort_large} steps (dt_max, 1/9) + "
+          f"{effort_small} steps (dt_max/4, 8/9)")
     print()
 
     sweep_results = []
@@ -145,11 +213,11 @@ def run_dt_extrapolation(base_config, dt_max, total_blocks):
         cfg["dmc"]["enabled"] = True
         cfg["dmc"]["delta_tau"] = run["dt"]
         cfg["dmc"]["n_block_steps"] = run["n_block_steps"]
-        adjust_block_time(cfg, base_block_time)
+        cfg["dmc"]["n_steps_per_block"] = run["n_steps_per_block"]
 
-        actual_bt = cfg["dmc"]["n_steps_per_block"] * run["dt"]
-        print(f"  [{run['label']}] n_steps_per_block = {cfg['dmc']['n_steps_per_block']}, "
-              f"block_time = {actual_bt:.4f}, n_block_steps = {run['n_block_steps']}")
+        print(f"  [{run['label']}] n_steps_per_block = {run['n_steps_per_block']}, "
+              f"block_time = {run['n_steps_per_block'] * run['dt']:.4f}, "
+              f"n_block_steps = {run['n_block_steps']}")
 
         run_dir = os.path.join(sweep_dir, run["label"])
         data = run_single(cfg, run["label"], run_dir)
@@ -223,11 +291,131 @@ def run_dt_extrapolation(base_config, dt_max, total_blocks):
     plt.show()
 
 
+def run_sweep_with_dt_extrapolation(base_config, param_path, sweep_values, dt_max, base_blocks):
+    """Run a parameter sweep where each point uses dt extrapolation."""
+    dt_small = dt_max / 4.0
+    base_dt = base_config["dmc"].get("delta_tau", 0.01)
+    base_nsb = base_config["dmc"].get("n_steps_per_block", 100)
+    block_time = base_dt * base_nsb
+
+    dt_runs_template, effort_large, effort_small = compute_dt_runs(
+        dt_max, block_time, base_blocks)
+
+    sweep_name = os.path.splitext(os.path.basename(sys.argv[1]))[0] if len(sys.argv) > 1 else "unknown"
+    sweep_dir = os.path.join(RESULTS_DIR,
+                             f"{sweep_name}_{param_path.replace('.', '_')}_dt_extrap")
+    os.makedirs(sweep_dir, exist_ok=True)
+
+    print(f"Parameter sweep with dt extrapolation")
+    print(f"  param       = {param_path}")
+    print(f"  values      = {sweep_values}")
+    print(f"  dt_max      = {dt_max}  ({dt_runs_template[0]['n_block_steps']} blocks, "
+          f"{dt_runs_template[0]['n_steps_per_block']} steps/block)")
+    print(f"  dt_max/4    = {dt_small}  ({dt_runs_template[1]['n_block_steps']} blocks, "
+          f"{dt_runs_template[1]['n_steps_per_block']} steps/block)")
+    print(f"  block_time  = {block_time:.4f}")
+    print(f"  effort split: {effort_large} steps (dt_max, 1/9) + "
+          f"{effort_small} steps (dt_max/4, 8/9)")
+    print()
+
+    sweep_results = []
+    for val in sweep_values:
+        param_label = f"{param_path.split('.')[-1]}_{val:.4f}"
+        param_dir = os.path.join(sweep_dir, param_label)
+        os.makedirs(param_dir, exist_ok=True)
+
+        print(f"=== {param_label} ===")
+
+        dt_results = []
+        failed = False
+        for run in dt_runs_template:
+            cfg = copy.deepcopy(base_config)
+            set_nested(cfg, param_path, float(val))
+            cfg["dmc"]["enabled"] = True
+            cfg["dmc"]["delta_tau"] = run["dt"]
+            cfg["dmc"]["n_block_steps"] = run["n_block_steps"]
+            cfg["dmc"]["n_steps_per_block"] = run["n_steps_per_block"]
+
+            run_dir = os.path.join(param_dir, run["label"])
+            data = run_single(cfg, f"{param_label}/{run['label']}", run_dir)
+
+            if data is None or "dmc" not in data:
+                print(f"  [{param_label}/{run['label']}] FAILED - skipping this parameter value")
+                failed = True
+                break
+
+            dt_results.append({
+                "dt": run["dt"],
+                "dmc_energy": data["dmc"]["energy"],
+                "dmc_std_error": data["dmc"]["std_error"],
+                "dmc_variance": data["dmc"]["variance"],
+            })
+            print(f"  [{run['label']}] E = {dt_results[-1]['dmc_energy']:.8f} "
+                  f"+/- {dt_results[-1]['dmc_std_error']:.8f}")
+
+        if failed or len(dt_results) < 2:
+            continue
+
+        E0, sigma_E0, kappa = dt_extrapolation(dt_results)
+        print(f"  E(dt->0) = {E0:.8f} +/- {sigma_E0:.8f}")
+        print()
+
+        entry = {
+            "param_value": float(val),
+            "dmc_energy": E0,
+            "dmc_std_error": sigma_E0,
+            "kappa": kappa,
+            "dt_runs": dt_results,
+        }
+
+        if "vmc" in (data or {}):
+            entry["vmc_energy"] = data["vmc"]["energy"]
+            entry["vmc_std_error"] = data["vmc"]["std_error"]
+
+        sweep_results.append(entry)
+
+    if not sweep_results:
+        print("No results collected.")
+        return
+
+    summary_path = os.path.join(sweep_dir, "sweep_summary.json")
+    with open(summary_path, "w") as f:
+        json.dump(sweep_results, f, indent=4)
+    print(f"\nSummary saved to {summary_path}")
+
+    # Plot
+    params = [r["param_value"] for r in sweep_results]
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    ax.errorbar(params,
+                [r["dmc_energy"] for r in sweep_results],
+                yerr=[r["dmc_std_error"] for r in sweep_results],
+                fmt="o-", label=r"DMC $(\delta\tau \to 0)$", capsize=3)
+
+    if "vmc_energy" in sweep_results[0]:
+        ax.errorbar(params,
+                    [r["vmc_energy"] for r in sweep_results],
+                    yerr=[r["vmc_std_error"] for r in sweep_results],
+                    fmt="s--", label="VMC", capsize=3)
+
+    ax.set_xlabel(param_path)
+    ax.set_ylabel("Energy")
+    ax.set_title(f"Energy vs {param_path} (dt extrapolated)")
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+
+    plot_path = os.path.join(sweep_dir, "sweep_plot.png")
+    fig.savefig(plot_path, dpi=150, bbox_inches="tight")
+    print(f"Plot saved to {plot_path}")
+    plt.show()
+
+
 def run_generic_sweep(base_config, param_path, sweep_values):
     """Run a generic parameter sweep."""
     sweep_name = os.path.splitext(os.path.basename(sys.argv[1]))[0] if len(sys.argv) > 1 else "unknown"
     sweep_dir = os.path.join(RESULTS_DIR,
                              f"{sweep_name}_{param_path.replace('.', '_')}")
+    os.makedirs(sweep_dir, exist_ok=True)
 
     # Compute base block_time for delta_tau sweeps
     is_dt_sweep = param_path == "dmc.delta_tau"
@@ -312,7 +500,7 @@ def main():
     parser.add_argument("--dt-max", type=float, default=None,
                         help="Run 2-point dt extrapolation (Lee thesis protocol)")
     parser.add_argument("--total-blocks", type=int, default=None,
-                        help="Total block steps for dt extrapolation "
+                        help="Override n_block_steps for the dt_max run "
                              "(default: from config n_block_steps)")
     parser.add_argument("--binary", type=str, default=None,
                         help="Path to QMC binary")
@@ -325,21 +513,24 @@ def main():
     with open(args.config) as f:
         base_config = json.load(f)
 
-    if args.dt_max is not None:
-        # Default: use config's n_block_steps as the *per-run* baseline,
-        # so total = 9 * n_block_steps (each run gets at least n_block_steps).
-        if args.total_blocks is not None:
-            total_blocks = args.total_blocks
-        else:
-            base_blocks = base_config["dmc"].get("n_block_steps", 1000)
-            total_blocks = 9 * base_blocks
-        run_dt_extrapolation(base_config, args.dt_max, total_blocks)
-    elif len(args.sweep_args) >= 3:
+    base_blocks = (args.total_blocks if args.total_blocks is not None
+                   else base_config["dmc"].get("n_block_steps", 1000))
+
+    has_sweep = len(args.sweep_args) >= 3
+
+    if has_sweep:
         param_path = args.sweep_args[0]
         start = float(args.sweep_args[1])
         stop = float(args.sweep_args[2])
         step = float(args.sweep_args[3]) if len(args.sweep_args) > 3 else 0.5
-        sweep_values = np.arange(start, stop, step)
+        sweep_values = np.arange(start, stop + 1e-10, step)
+
+    if has_sweep and args.dt_max is not None:
+        run_sweep_with_dt_extrapolation(
+            base_config, param_path, sweep_values, args.dt_max, base_blocks)
+    elif args.dt_max is not None:
+        run_dt_extrapolation(base_config, args.dt_max, base_blocks)
+    elif has_sweep:
         run_generic_sweep(base_config, param_path, sweep_values)
     else:
         parser.print_help()

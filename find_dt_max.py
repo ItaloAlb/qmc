@@ -72,8 +72,7 @@ def run_single(base_config, dt, block_time, output_dir, index):
     try:
         result = subprocess.run(
             [QMC_BINARY, config_file],
-            capture_output=True, text=True, timeout=3600
-        )
+            capture_output=True, text=True)
         if result.returncode != 0:
             print(f"      FAILED (exit {result.returncode})")
             if result.stderr:
@@ -100,25 +99,22 @@ def run_single(base_config, dt, block_time, output_dir, index):
     return (dt, energy, std_error)
 
 
-def find_linear_regime(dt_arr, e_arr, err_arr, sigma_threshold=2.0):
+def find_linear_regime(dt_arr, e_arr, err_arr, chi2_threshold=2.5):
     """
     Find dt_max by progressively adding larger dt points to a linear fit
-    and detecting where the fit breaks down.
+    and detecting where the fit breaks down using the reduced chi-squared.
 
-    Starting from the 3 smallest dt points (minimum for a meaningful fit),
-    add one point at a time. If the new point's residual exceeds
-    sigma_threshold * its error bar, the linear regime has ended.
-
-    Returns (dt_max_index, slope, intercept) of the best linear fit.
+    Returns (dt_max_index, slope, intercept, intercept_err) of the best fit.
     """
     n = len(dt_arr)
     if n < 3:
         print("Warning: fewer than 3 dt points, cannot determine linearity.")
-        return n - 1, None, None
+        return n - 1, None, None, None
 
     best_idx = 2  # at least use 3 points
     best_slope = None
     best_intercept = None
+    best_intercept_err = None
 
     for k in range(3, n + 1):
         dt_sub = dt_arr[:k]
@@ -126,26 +122,31 @@ def find_linear_regime(dt_arr, e_arr, err_arr, sigma_threshold=2.0):
         err_sub = err_arr[:k]
 
         # Weighted linear fit: E(dt) = a + b * dt
-        w = 1.0 / (err_sub ** 2)
-        coeffs = np.polyfit(dt_sub, e_sub, 1, w=np.sqrt(w))
+        # np.polyfit expects weights as 1/sigma
+        w = 1.0 / err_sub
+        coeffs, cov = np.polyfit(dt_sub, e_sub, 1, w=w, cov=True)
+
         slope, intercept = coeffs
+        intercept_err = np.sqrt(cov[1, 1])
 
-        # Check residual of the last added point
-        predicted = slope * dt_sub[-1] + intercept
-        residual = abs(e_sub[-1] - predicted)
-        tolerance = sigma_threshold * err_sub[-1]
+        # Calculate reduced chi-squared
+        predicted = slope * dt_sub + intercept
+        chi2 = np.sum(((e_sub - predicted) / err_sub) ** 2)
+        dof = k - 2  # degrees of freedom (N data points - 2 fit parameters)
+        reduced_chi2 = chi2 / dof
 
-        if k > 3 and residual > tolerance:
-            # This point breaks linearity
+        # If reduced chi-squared jumps too high, the linear model is failing
+        if k > 3 and reduced_chi2 > chi2_threshold:
             print(f"\n  Linearity breaks at dt = {dt_sub[-1]:.6f} "
-                  f"(residual = {residual:.2e}, tolerance = {tolerance:.2e})")
+                  f"(Reduced chi^2 = {reduced_chi2:.2f} > {chi2_threshold})")
             break
 
         best_idx = k - 1
         best_slope = slope
         best_intercept = intercept
+        best_intercept_err = intercept_err
 
-    return best_idx, best_slope, best_intercept
+    return best_idx, best_slope, best_intercept, best_intercept_err
 
 
 def plot_results(dt_arr, e_arr, err_arr, dt_max_idx, slope, intercept, output):
@@ -276,13 +277,15 @@ def main():
 
     # Find linear regime
     print("\nLinearity analysis:")
-    dt_max_idx, slope, intercept = find_linear_regime(dt_arr, e_arr, err_arr, args.sigma)
+    # Passando o limite de chi2 (você pode linkar com args.sigma se quiser manter o mesmo CLI argument)
+    dt_max_idx, slope, intercept, intercept_err = find_linear_regime(dt_arr, e_arr, err_arr, chi2_threshold=2.5)
 
     dt_max = dt_arr[dt_max_idx]
     print(f"\n{'='*50}")
     print(f"  dt_max = {dt_max:.6f}")
     if intercept is not None:
-        print(f"  E(dt->0) = {intercept:.8f} (from linear fit)")
+        # Agora exibimos o erro junto com o E0
+        print(f"  E(dt->0) = {intercept:.8f} +/- {intercept_err:.8f} (from linear fit)")
         print(f"  slope    = {slope:.8f}")
     print(f"{'='*50}")
     print(f"\nFor extrapolation, run at dt_max = {dt_max:.6f} and dt_max/4 = {dt_max/4:.6f}")
@@ -292,8 +295,9 @@ def main():
         "dt_max": dt_max,
         "dt_max_over_4": dt_max / 4,
         "E0_linear_fit": intercept,
+        "E0_error": intercept_err,
         "slope": slope,
-        "sigma_threshold": args.sigma,
+        "chi2_threshold": 2.5,
         "data": [{"dt": float(d), "energy": float(e), "std_error": float(s)}
                  for d, e, s in zip(dt_arr, e_arr, err_arr)]
     }

@@ -34,7 +34,7 @@ void PeriodicBoundary::applyPeriodicBoundary(double* position) const {
     }
 
     for (int i = 0; i < dim; ++i) {
-        s[i] -= std::round(s[i]);
+        s[i] -= std::floor(s[i]);
     }
 
     for (int i = 0; i < dim; ++i) {

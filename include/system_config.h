@@ -209,18 +209,21 @@ System ExcitonInATrianglePotential(const json& p) {
 System ExcitonExciton(const json& p) {
     double me = p.at("me"), mh = p.at("mh");
     double mu = (me * mh) / (me + mh);
-    double d  = p.value("d", 0.2 * me / mu);
-    double R  = p.value("R", 4.0 * me / mu);
+    double d  = p.value("d", 0.2 ) * me / mu;
+    double R  = p.value("R", 1.0) * me / mu;
+
+    bool interacting = p.value("interacting", true);
 
     std::vector<double> masses  = { mu, mu };
     std::vector<double> charges = p.at("charges").get<std::vector<double>>();
-    std::vector<double> alpha   = p.at("wf_alpha").get<std::vector<double>>();
     int nP = p.at("nParticles"), nD = p.at("nDim");
 
+    std::vector<double> initP(9, 0.0);
+
     auto ham = std::make_unique<ExcitonExcitonCoulombHamiltonian>(
-        nP, nD, masses, charges, me, mh, d, R);
+        nP, nD, masses, charges, me, mh, d, R, interacting);
     auto wf  = std::make_unique<ExcitonExcitonWF>(
-        alpha, nP, nD, me, mh, d, R);
+        initP, nP, nD, me, mh, d, R, interacting);
     wf->setParameters(p.at("wf_params_init").get<std::vector<double>>());
     return { std::move(ham), std::move(wf), buildPBC(p), nP, nD };
 }

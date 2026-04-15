@@ -77,15 +77,11 @@ public:
         // Smooth phi for the equilateral-triangle tiling: sum of three
         // sinusoids along the K-point reciprocal vectors. Normalized so
         // the function is +1 at up-triangle centroids and -1 at
-        // down-triangle centroids. The (x,y) input is shifted by the
-        // centroid (a/2, a*sqrt(3)/6) so that the origin sits at an
-        // up-triangle center — matching the Hamiltonian convention and
-        // mirroring the square version where origin = cell center.
+        // down-triangle centroids. Origin at a lattice vertex (matching
+        // the Hamiltonian) so the tiling aligns with PBC edges.
         double invSqrt3 = 1.0 / std::sqrt(3.0);
         double k = 4.0 * M_PI * invSqrt3 / a; // |G| = 4π / (a√3)
         double norm = 2.0 / (3.0 * std::sqrt(3.0));
-        double shiftX = 0.5 * a;
-        double shiftY = 0.5 * a * invSqrt3;  // a*sqrt(3)/6
 
         // G1 = k*(0, 1)
         // G2 = k*(-√3/2, -1/2)
@@ -98,8 +94,8 @@ public:
             return norm * (std::sin(g1) + std::sin(g2) + std::sin(g3));
         };
 
-        double Ve = lambda_e * triangular(position[0] + shiftX, position[1] + shiftY);
-        double Vh = lambda_h * triangular(position[2] + shiftX, position[3] + shiftY);
+        double Ve = lambda_e * triangular(position[0], position[1]);
+        double Vh = lambda_h * triangular(position[2], position[3]);
 
         return Ve + Vh;
     }
