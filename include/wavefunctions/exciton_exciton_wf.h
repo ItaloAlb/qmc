@@ -11,18 +11,27 @@ private:
     double R;
     bool interacting;
     int Nee, Nhh, Neh;
-    double Lee, Lhh, Leh;
+    int eeOffset, hhOffset, ehOffset;
 
 public:
     ExcitonExcitonWF(const std::vector<double>& params, int nParticles, int dim,
                      double me, double mh, double d, double R, bool interacting = true,
-                     int Nee = 0, int Nhh = 0, int Neh = 0,
-                     double Lee = 0.0, double Lhh = 0.0, double Leh = 0.0)
+                     int Nee = 0, int Nhh = 0, int Neh = 0)
         : WaveFunction(params, nParticles, dim), me(me), mh(mh), d(d), R(R),
-          interacting(interacting), Nee(Nee), Nhh(Nhh), Neh(Neh),
-          Lee(Lee), Lhh(Lhh), Leh(Leh) {
+          interacting(interacting), Nee(Nee), Nhh(Nhh), Neh(Neh) {
         mu = (me * mh) / (me + mh);
-        this->params.resize(9 + Nee + Nhh + Neh, 0.0);
+
+        // Layout after c1-c9 (indices 0-8):
+        //   if Nee>0: [Lee, u1..uNee]
+        //   if Nhh>0: [Lhh, v1..vNhh]
+        //   if Neh>0: [Leh, w1..wNeh]
+        int eeCount = (Nee > 0) ? 1 + Nee : 0;
+        int hhCount = (Nhh > 0) ? 1 + Nhh : 0;
+        int ehCount = (Neh > 0) ? 1 + Neh : 0;
+        eeOffset = 9;
+        hhOffset = eeOffset + eeCount;
+        ehOffset = hhOffset + hhCount;
+        this->params.resize(ehOffset + ehCount, 0.0);
     }
 
     WaveFunction* clone() const override {
@@ -46,20 +55,37 @@ public:
             params[5] = -std::exp(newParams[5]);
             params[7] = -std::exp(newParams[7]);
 
-            // u_l, v_l, w_l: unconstrained
-            for (int i = 0; i < Nee + Nhh + Neh; i++) {
-                params[9 + i] = newParams[9 + i];
+            // Polynomial cutoff Jastrow: L (positive via exp) + coefficients
+            int idx = 9;
+            if (Nee > 0) {
+                params[eeOffset] = std::exp(newParams[idx++]);
+                for (int i = 0; i < Nee; i++)
+                    params[eeOffset + 1 + i] = newParams[idx++];
+            }
+            if (Nhh > 0) {
+                params[hhOffset] = std::exp(newParams[idx++]);
+                for (int i = 0; i < Nhh; i++)
+                    params[hhOffset + 1 + i] = newParams[idx++];
+            }
+            if (Neh > 0) {
+                params[ehOffset] = std::exp(newParams[idx++]);
+                for (int i = 0; i < Neh; i++)
+                    params[ehOffset + 1 + i] = newParams[idx++];
             }
         } else {
-            // Non-interacting: c5, c6, c7, c8, c9 + w_l
+            // Non-interacting: c5, c6, c7, c8, c9
             params[4] = newParams[0];              // c5
             params[5] = -std::exp(newParams[1]);   // c6 (negative)
             params[6] = std::exp(newParams[2]);    // c7 (positive)
             params[7] = -std::exp(newParams[3]);   // c8 (negative)
             params[8] = std::exp(newParams[4]);    // c9 (positive)
 
-            for (int i = 0; i < Neh; i++) {
-                params[9 + Nee + Nhh + i] = newParams[5 + i];
+            // Only eh cutoff in non-interacting
+            if (Neh > 0) {
+                int idx = 5;
+                params[ehOffset] = std::exp(newParams[idx++]);
+                for (int i = 0; i < Neh; i++)
+                    params[ehOffset + 1 + i] = newParams[idx++];
             }
         }
     }
@@ -77,8 +103,20 @@ public:
                 std::log(-params[7]),   // log(-c8)
                 std::log(params[8])     // log(c9)
             };
-            for (int i = 0; i < Nee + Nhh + Neh; i++) {
-                result.push_back(params[9 + i]);
+            if (Nee > 0) {
+                result.push_back(std::log(params[eeOffset]));
+                for (int i = 0; i < Nee; i++)
+                    result.push_back(params[eeOffset + 1 + i]);
+            }
+            if (Nhh > 0) {
+                result.push_back(std::log(params[hhOffset]));
+                for (int i = 0; i < Nhh; i++)
+                    result.push_back(params[hhOffset + 1 + i]);
+            }
+            if (Neh > 0) {
+                result.push_back(std::log(params[ehOffset]));
+                for (int i = 0; i < Neh; i++)
+                    result.push_back(params[ehOffset + 1 + i]);
             }
             return result;
         } else {
@@ -89,8 +127,10 @@ public:
                 std::log(-params[7]),   // log(-c8)
                 std::log(params[8])     // log(c9)
             };
-            for (int i = 0; i < Neh; i++) {
-                result.push_back(params[9 + Nee + Nhh + i]);
+            if (Neh > 0) {
+                result.push_back(std::log(params[ehOffset]));
+                for (int i = 0; i < Neh; i++)
+                    result.push_back(params[ehOffset + 1 + i]);
             }
             return result;
         }
@@ -159,18 +199,20 @@ public:
                     double r_e2h1, double r_e1h2) const {
         double J = 0.0;
 
-        // ee: (r12 - Lee)^3 * Theta(Lee - r12) * sum u_l * r12^l
-        J += cutoffPoly(r_ee, Lee, &params[9], Nee);
-
-        // hh: (rab - Lhh)^3 * Theta(Lhh - rab) * sum v_l * rab^l
-        J += cutoffPoly(r_hh, Lhh, &params[9 + Nee], Nhh);
-
-        // eh: sum w_l * { r1a^l*(r1a-Leh)^3*Theta + r2b^l*... + r2a^l*... + r1b^l*... }
-        const double* w = &params[9 + Nee + Nhh];
-        J += cutoffPoly(r_e1h1, Leh, w, Neh);
-        J += cutoffPoly(r_e2h2, Leh, w, Neh);
-        J += cutoffPoly(r_e2h1, Leh, w, Neh);
-        J += cutoffPoly(r_e1h2, Leh, w, Neh);
+        if (Nee > 0) {
+            J += cutoffPoly(r_ee, params[eeOffset], &params[eeOffset + 1], Nee);
+        }
+        if (Nhh > 0) {
+            J += cutoffPoly(r_hh, params[hhOffset], &params[hhOffset + 1], Nhh);
+        }
+        if (Neh > 0) {
+            double L = params[ehOffset];
+            const double* w = &params[ehOffset + 1];
+            J += cutoffPoly(r_e1h1, L, w, Neh);
+            J += cutoffPoly(r_e2h2, L, w, Neh);
+            J += cutoffPoly(r_e2h1, L, w, Neh);
+            J += cutoffPoly(r_e1h2, L, w, Neh);
+        }
 
         return J;
     }
