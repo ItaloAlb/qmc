@@ -218,12 +218,19 @@ System ExcitonExciton(const json& p) {
     std::vector<double> charges = p.at("charges").get<std::vector<double>>();
     int nP = p.at("nParticles"), nD = p.at("nDim");
 
-    std::vector<double> initP(9, 0.0);
+    int Nee = p.value("Nee", 0);
+    int Nhh = p.value("Nhh", 0);
+    int Neh = p.value("Neh", 0);
+    double Lee = p.value("Lee", 0.0);
+    double Lhh = p.value("Lhh", 0.0);
+    double Leh = p.value("Leh", 0.0);
+
+    std::vector<double> initP(9 + Nee + Nhh + Neh, 0.0);
 
     auto ham = std::make_unique<ExcitonExcitonCoulombHamiltonian>(
         nP, nD, masses, charges, me, mh, d, R, interacting);
     auto wf  = std::make_unique<ExcitonExcitonWF>(
-        initP, nP, nD, me, mh, d, R, interacting);
+        initP, nP, nD, me, mh, d, R, interacting, Nee, Nhh, Neh, Lee, Lhh, Leh);
     wf->setParameters(p.at("wf_params_init").get<std::vector<double>>());
     return { std::move(ham), std::move(wf), buildPBC(p), nP, nD };
 }
