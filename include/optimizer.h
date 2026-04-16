@@ -400,7 +400,9 @@ public:
             wf.setParameters(currentParams);
 
             double opt_log_alpha = parabolicInterpolation(log_alphas, candidate_Es);
-            opt_log_alpha = std::max(-6.0, std::min(2.0, opt_log_alpha));
+            opt_log_alpha = std::max(std::log10(Constants::LM_ADIAG_MIN),
+                                     std::min(std::log10(Constants::LM_ADIAG_MAX),
+                                              opt_log_alpha));
             double newAdiag = std::pow(10.0, opt_log_alpha);
 
             // ---- Final solve with chosen adiag ---------------------------------
@@ -423,9 +425,8 @@ public:
                 wf, ham, sampler, proposedParams, currentParams, posCheck, correlatedSteps);
             wf.setParameters(currentParams);
 
-            const double rejectTol = 0.5;  // allow small uphill moves (MC noise)
             bool accept =  std::isfinite(proposedE)
-                        && proposedE < avgE + rejectTol
+                        && proposedE < avgE + Constants::LM_REJECT_TOL
                         && std::all_of(proposedParams.begin(), proposedParams.end(),
                                        [](double v){ return std::isfinite(v); });
 
@@ -436,8 +437,9 @@ public:
                 adiag = newAdiag;
                 status = "accept";
             } else {
-                // Bad step — keep params, increase adiag (reset floor to 1e-3).
-                adiag = std::min(1e2, std::max(1e-3, newAdiag * 10.0));
+                // Bad step — keep params, bump adiag toward steepest-descent.
+                adiag = std::min(Constants::LM_ADIAG_MAX,
+                                 std::max(Constants::LM_ADIAG_MIN, newAdiag * 10.0));
                 wf.setParameters(currentParams);
                 status = "REJECT";
             }

@@ -22,7 +22,13 @@ namespace Constants {
 
     //VMC
 
-    
+
+    //OPTIMIZER (Linear Method)
+    const double LM_REJECT_TOL = 0.01;  // uphill tolerance on E_prop - E in Ha
+    const double LM_ADIAG_MIN  = 1e-3;  // floor on diagonal stabilization
+    const double LM_ADIAG_MAX  = 1e2;   // cap on diagonal stabilization
+
+
 
     //UTILS
     const double EQUILIBRATION_STEPS = 1e5;
