@@ -42,9 +42,14 @@
         "fixed_node": false,
         "max_branch": false,
         "n_walkers_target": 5000,
+
         "equilibration_blocks": 0,
         "accumulation_blocks": 1500,
         "n_steps_per_block": 100,
+
+        "checkpoint": true,
+        "resume_from_checkpoint": true,
+        
         "dump_walkers": true,
         "descendant_weighting": true,
         "t_lag_blocks": 300,

@@ -41,6 +41,7 @@ class DMC {
         int tLagBlocks;
         double deltaTau, invDeltaTau, referenceEnergy, instEnergy;
         bool isFixedNode, isMaxBranch, dumpWalkers, descendantWeighting;
+        bool checkpoint, resumeFromCheckpoint;
 
         std::vector<std::mt19937> gens;
         std::vector<double> positions;
@@ -59,6 +60,9 @@ class DMC {
         void initializeWalkers();
         void updateReferenceEnergy(double blockEnergy, double blockTime);
 
+        void saveCheckpoint(const std::string& path) const;
+        bool loadCheckpoint(const std::string& path);
+
         double driftGreenFunction(const double* newPosition, const double* oldPosition, const double* oldDrift) const;
         double branchGreenFunction(double newLocalEnergy, double oldLocalEnergy) const;
 
@@ -75,6 +79,8 @@ class DMC {
             bool isMaxBranch = false,
             bool dumpWalkers = false,
             bool descendantWeighting = false,
+            bool checkpoint = false,
+            bool resumeFromCheckpoint = false,
             int tLagBlocks = 300,
             int taggingIntervalBlocks = 10,
             int equilibrationBlocks = 200,

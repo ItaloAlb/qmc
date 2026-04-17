@@ -34,6 +34,8 @@ struct DMCConfig {
     bool maxBranch;
     bool dumpWalkers;
     bool descendantWeighting;
+    bool checkpoint;
+    bool resumeFromCheckpoint;
     int tLagBlocks;
     int taggingIntervalBlocks;
     int equilibrationBlocks;
@@ -89,6 +91,8 @@ struct QMCConfig {
             d.at("max_branch"),
             d.value("dump_walkers", false),
             d.value("descendant_weighting", false),
+            d.value("checkpoint", false),
+            d.value("resume_from_checkpoint", false),
             d.value("t_lag_blocks", 10),
             d.value("tagging_interval_blocks", 1),
             d.value("equilibration_blocks", 200),

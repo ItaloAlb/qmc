@@ -11,6 +11,8 @@ DMC::DMC(const Hamiltonian& hamiltonian_,
         bool isMaxBranch_,
         bool dumpWalkers_,
         bool descendantWeighting_,
+        bool checkpoint_,
+        bool resumeFromCheckpoint_,
         int tLagBlocks_,
         int taggingIntervalBlocks_,
         int equilibrationBlocks_,
@@ -26,6 +28,8 @@ DMC::DMC(const Hamiltonian& hamiltonian_,
       isMaxBranch(isMaxBranch_),
       dumpWalkers(dumpWalkers_),
       descendantWeighting(descendantWeighting_),
+      checkpoint(checkpoint_),
+      resumeFromCheckpoint(resumeFromCheckpoint_),
       equilibrationBlocks(equilibrationBlocks_),
       accumulationBlocks(accumulationBlocks_),
       nStepsPerBlock(nStepsPerBlock_),
@@ -336,12 +340,102 @@ void DMC::initializeWalkers() {
     referenceEnergy = totalEnergy / nWalkers;
 }
 
+void DMC::saveCheckpoint(const std::string& path) const {
+    std::ofstream f(path, std::ios::binary);
+    if (!f.is_open()) {
+        std::cerr << "Warning: could not open checkpoint file for writing: " << path << std::endl;
+        return;
+    }
+
+    int32_t st = stride;
+    int32_t np = nParticles;
+    int32_t dm = dim;
+    int32_t nw = nWalkers;
+    double dt = deltaTau;
+    double refE = referenceEnergy;
+
+    f.write(reinterpret_cast<const char*>(&st), sizeof(int32_t));
+    f.write(reinterpret_cast<const char*>(&np), sizeof(int32_t));
+    f.write(reinterpret_cast<const char*>(&dm), sizeof(int32_t));
+    f.write(reinterpret_cast<const char*>(&nw), sizeof(int32_t));
+    f.write(reinterpret_cast<const char*>(&dt), sizeof(double));
+    f.write(reinterpret_cast<const char*>(&refE), sizeof(double));
+    f.write(reinterpret_cast<const char*>(positions.data()),
+            static_cast<std::streamsize>(nWalkers) * stride * sizeof(double));
+}
+
+bool DMC::loadCheckpoint(const std::string& path) {
+    std::ifstream f(path, std::ios::binary);
+    if (!f.is_open()) return false;
+
+    int32_t st, np, dm, nw;
+    double dt, refE;
+    f.read(reinterpret_cast<char*>(&st), sizeof(int32_t));
+    f.read(reinterpret_cast<char*>(&np), sizeof(int32_t));
+    f.read(reinterpret_cast<char*>(&dm), sizeof(int32_t));
+    f.read(reinterpret_cast<char*>(&nw), sizeof(int32_t));
+    f.read(reinterpret_cast<char*>(&dt), sizeof(double));
+    f.read(reinterpret_cast<char*>(&refE), sizeof(double));
+
+    if (!f) {
+        std::cerr << "Warning: checkpoint header read failed: " << path << std::endl;
+        return false;
+    }
+
+    if (st != stride || np != nParticles || dm != dim) {
+        std::cerr << "Warning: checkpoint shape mismatch (stride/nParticles/dim). Ignoring." << std::endl;
+        return false;
+    }
+
+    if (nw <= 0 || nw > Constants::MAX_N_WALKERS) {
+        std::cerr << "Warning: checkpoint walker count out of range: " << nw << ". Ignoring." << std::endl;
+        return false;
+    }
+
+    positions.assign(static_cast<size_t>(nw) * stride, 0.0);
+    f.read(reinterpret_cast<char*>(positions.data()),
+           static_cast<std::streamsize>(nw) * stride * sizeof(double));
+    if (!f) {
+        std::cerr << "Warning: checkpoint positions read failed: " << path << std::endl;
+        return false;
+    }
+
+    nWalkers = nw;
+    referenceEnergy = refE;
+
+    drifts.assign(static_cast<size_t>(nWalkers) * stride, 0.0);
+    localEnergy.assign(nWalkers, 0.0);
+    for (int w = 0; w < nWalkers; ++w) {
+        std::vector<double> d = wf.getDrift(&positions[w * stride], hamiltonian.getMasses().data());
+        for (int i = 0; i < stride; ++i) drifts[w * stride + i] = d[i];
+        localEnergy[w] = hamiltonian.getLocalEnergy(wf, &positions[w * stride]);
+    }
+
+    std::cout << "Resumed from checkpoint: " << path
+              << " | nWalkers = " << nWalkers
+              << " | referenceEnergy = " << std::fixed << std::setprecision(8) << referenceEnergy
+              << " | saved dt = " << dt
+              << " | current dt = " << deltaTau
+              << std::endl;
+
+    return true;
+}
+
 DMCResult DMC::run(const std::string& outputFile) {
     double blockTime = deltaTau * nStepsPerBlock;
 
     std::ofstream fout;
     std::ofstream walkerFile;
     std::ofstream descFile;
+
+    std::string checkpointPath = outputFile.substr(0, outputFile.rfind('.')) + "_checkpoint.bin";
+
+    if (resumeFromCheckpoint) {
+        if (!loadCheckpoint(checkpointPath)) {
+            std::cout << "No usable checkpoint at " << checkpointPath
+                      << " — running full equilibration." << std::endl;
+        }
+    }
 
     for (int j = 0; j < equilibrationBlocks; j++) {
         BlockResult blockResult = blockStep(nStepsPerBlock);
@@ -354,6 +448,11 @@ DMCResult DMC::run(const std::string& outputFile) {
                     << " | Variance = " << std::fixed << std::setprecision(8) << blockResult.variance
                     << " | Acceptance Ratio = " << std::fixed << std::setprecision(8) << blockResult.acceptanceRatio
                     << std::endl;
+    }
+
+    if (checkpoint) {
+        saveCheckpoint(checkpointPath);
+        std::cout << "Checkpoint written: " << checkpointPath << std::endl;
     }
 
     fout.open(outputFile);

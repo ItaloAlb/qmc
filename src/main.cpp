@@ -71,6 +71,7 @@ int main(int argc, char* argv[]) {
         DMC dmc(ham, wf, cfg.dmc.deltaTau, sys.pbc.get(),
                 cfg.dmc.nWalkersTarget, cfg.dmc.fixedNode, cfg.dmc.maxBranch,
                 cfg.dmc.dumpWalkers, cfg.dmc.descendantWeighting,
+                cfg.dmc.checkpoint, cfg.dmc.resumeFromCheckpoint,
                 cfg.dmc.tLagBlocks, cfg.dmc.taggingIntervalBlocks,
                 cfg.dmc.equilibrationBlocks, cfg.dmc.accumulationBlocks,
                 cfg.dmc.nStepsPerBlock);
