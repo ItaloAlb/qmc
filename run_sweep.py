@@ -24,18 +24,25 @@ When sweeping 'dmc.delta_tau', n_steps_per_block is automatically adjusted
 to keep block_time constant across runs.
 
 The --dt-max flag triggers the optimal 2-point extrapolation protocol:
-  - Runs at dt_max (1/9 of total effort) and dt_max/4 (8/9 of effort)
-  - Keeps block_time constant by adjusting n_steps_per_block
-  - Extrapolates E(dt) -> E(0) using linear fit
+  - Runs at dt_max (1/9 of total effort) and dt_max/4 (8/9 of effort).
+    Effort is measured against accumulation_blocks * n_steps_per_block;
+    the config's accumulation_blocks sets the dt_max run, and the
+    dt_max/4 run is scaled by the 1:8 ratio.
+  - Keeps block_time constant by adjusting n_steps_per_block.
+  - The dt_max run equilibrates and writes a checkpoint; the dt_max/4
+    run resumes from it with zero equilibration.
+  - Extrapolates E(dt) -> E(0) using linear fit.
 
 When combined with a parameter sweep, dt extrapolation is performed at
-each sweep point, and the extrapolated E(dt->0) is plotted.
+each sweep point (with its own checkpoint), and the extrapolated
+E(dt->0) is plotted.
 """
 import json
 import subprocess
 import os
 import sys
 import copy
+import shutil
 import argparse
 
 import numpy as np
@@ -157,50 +164,55 @@ def dt_extrapolation(results):
     return E0, sigma_E0, kappa
 
 
-def compute_dt_runs(dt_max, block_time, base_blocks):
+def compute_dt_runs(dt_max, block_time, base_accum_blocks):
     """Compute the two dt-extrapolation runs with proper effort-aware 1:8 split.
 
     block_time is kept constant: n_steps_per_block = round(block_time / dt).
-    Effort = n_block_steps * n_steps_per_block, so runs at smaller dt cost
-    more per block.  The 1:8 optimal split (Lee thesis) requires:
-        blocks_small = 8 * blocks_large * steps_large / steps_small
-    For dt_small = dt_max/4 this gives blocks_small = 2 * blocks_large.
+    Effort = accumulation_blocks * n_steps_per_block, so runs at smaller dt
+    cost more per block. The 1:8 optimal split (Lee thesis) requires:
+        accum_small = 8 * accum_large * steps_large / steps_small
+    For dt_small = dt_max/4 this gives accum_small = 2 * accum_large.
     """
     dt_small = dt_max / 4.0
     steps_large = max(1, round(block_time / dt_max))
     steps_small = max(1, round(block_time / dt_small))
 
-    blocks_large = base_blocks
-    blocks_small = max(1, round(8 * blocks_large * steps_large / steps_small))
+    accum_large = base_accum_blocks
+    accum_small = max(1, round(8 * accum_large * steps_large / steps_small))
 
-    effort_large = blocks_large * steps_large
-    effort_small = blocks_small * steps_small
+    effort_large = accum_large * steps_large
+    effort_small = accum_small * steps_small
 
     return [
-        {"dt": dt_max,   "n_block_steps": blocks_large,
+        {"dt": dt_max,   "accumulation_blocks": accum_large,
          "n_steps_per_block": steps_large, "label": f"dt_{dt_max:.6f}"},
-        {"dt": dt_small,  "n_block_steps": blocks_small,
+        {"dt": dt_small, "accumulation_blocks": accum_small,
          "n_steps_per_block": steps_small, "label": f"dt_{dt_small:.6f}"},
     ], effort_large, effort_small
 
 
-def run_dt_extrapolation(base_config, dt_max, base_blocks):
-    """Run the 2-point dt extrapolation protocol from Lee's thesis."""
+def run_dt_extrapolation(base_config, dt_max, base_accum_blocks, resume_equilibration_blocks=0):
+    """Run the 2-point dt extrapolation protocol from Lee's thesis.
+
+    The first run (dt_max) performs full equilibration and saves a
+    checkpoint. The second run (dt_max/4) resumes from that checkpoint,
+    so it only pays the accumulation cost.
+    """
     dt_small = dt_max / 4.0
     base_dt = base_config["dmc"].get("delta_tau", 0.01)
     base_nsb = base_config["dmc"].get("n_steps_per_block", 100)
     block_time = base_dt * base_nsb
 
-    runs, effort_large, effort_small = compute_dt_runs(dt_max, block_time, base_blocks)
+    runs, effort_large, effort_small = compute_dt_runs(dt_max, block_time, base_accum_blocks)
 
     sweep_name = os.path.splitext(os.path.basename(sys.argv[1]))[0] if len(sys.argv) > 1 else "unknown"
     sweep_dir = os.path.join(RESULTS_DIR, f"{sweep_name}_dt_extrapolation")
     os.makedirs(sweep_dir, exist_ok=True)
 
     print(f"Time step extrapolation (Lee thesis protocol)")
-    print(f"  dt_max     = {dt_max}  ({runs[0]['n_block_steps']} blocks, "
+    print(f"  dt_max     = {dt_max}  ({runs[0]['accumulation_blocks']} accum blocks, "
           f"{runs[0]['n_steps_per_block']} steps/block)")
-    print(f"  dt_max/4   = {dt_small}  ({runs[1]['n_block_steps']} blocks, "
+    print(f"  dt_max/4   = {dt_small}  ({runs[1]['accumulation_blocks']} accum blocks, "
           f"{runs[1]['n_steps_per_block']} steps/block)")
     print(f"  block_time = {block_time:.4f}")
     print(f"  effort split: {effort_large} steps (dt_max, 1/9) + "
@@ -208,18 +220,39 @@ def run_dt_extrapolation(base_config, dt_max, base_blocks):
     print()
 
     sweep_results = []
-    for run in runs:
+    run_dirs = []
+    for i, run in enumerate(runs):
         cfg = copy.deepcopy(base_config)
         cfg["dmc"]["enabled"] = True
         cfg["dmc"]["delta_tau"] = run["dt"]
-        cfg["dmc"]["n_block_steps"] = run["n_block_steps"]
+        cfg["dmc"]["accumulation_blocks"] = run["accumulation_blocks"]
         cfg["dmc"]["n_steps_per_block"] = run["n_steps_per_block"]
+
+        run_dir = os.path.join(sweep_dir, run["label"])
+        os.makedirs(run_dir, exist_ok=True)
+        run_dirs.append(run_dir)
+
+        if i == 0:
+            cfg["dmc"]["checkpoint"] = True
+            cfg["dmc"]["resume_from_checkpoint"] = False
+        else:
+            cfg["dmc"]["checkpoint"] = False
+            cfg["dmc"]["resume_from_checkpoint"] = True
+            cfg["dmc"]["equilibration_blocks"] = resume_equilibration_blocks
+            src_ckpt = os.path.join(run_dirs[0], "qmc_checkpoint.bin")
+            dst_ckpt = os.path.join(run_dir, "qmc_checkpoint.bin")
+            if os.path.exists(src_ckpt):
+                shutil.copyfile(src_ckpt, dst_ckpt)
+            else:
+                print(f"  [{run['label']}] WARNING: checkpoint from first run not found, "
+                      f"falling back to fresh equilibration")
+                cfg["dmc"]["resume_from_checkpoint"] = False
+                cfg["dmc"]["equilibration_blocks"] = base_config["dmc"].get("equilibration_blocks", 200)
 
         print(f"  [{run['label']}] n_steps_per_block = {run['n_steps_per_block']}, "
               f"block_time = {run['n_steps_per_block'] * run['dt']:.4f}, "
-              f"n_block_steps = {run['n_block_steps']}")
+              f"accumulation_blocks = {run['accumulation_blocks']}")
 
-        run_dir = os.path.join(sweep_dir, run["label"])
         data = run_single(cfg, run["label"], run_dir)
 
         if data is None or "dmc" not in data:
@@ -291,15 +324,22 @@ def run_dt_extrapolation(base_config, dt_max, base_blocks):
     plt.show()
 
 
-def run_sweep_with_dt_extrapolation(base_config, param_path, sweep_values, dt_max, base_blocks):
-    """Run a parameter sweep where each point uses dt extrapolation."""
+def run_sweep_with_dt_extrapolation(base_config, param_path, sweep_values, dt_max, base_accum_blocks,
+                                     resume_equilibration_blocks=0):
+    """Run a parameter sweep where each point uses dt extrapolation.
+
+    For each parameter value, the dt_max run equilibrates and saves a
+    checkpoint; the dt_max/4 run resumes from it with zero equilibration.
+    Checkpoints are per-parameter-value (a new Hamiltonian needs a new
+    equilibrated ensemble).
+    """
     dt_small = dt_max / 4.0
     base_dt = base_config["dmc"].get("delta_tau", 0.01)
     base_nsb = base_config["dmc"].get("n_steps_per_block", 100)
     block_time = base_dt * base_nsb
 
     dt_runs_template, effort_large, effort_small = compute_dt_runs(
-        dt_max, block_time, base_blocks)
+        dt_max, block_time, base_accum_blocks)
 
     sweep_name = os.path.splitext(os.path.basename(sys.argv[1]))[0] if len(sys.argv) > 1 else "unknown"
     sweep_dir = os.path.join(RESULTS_DIR,
@@ -309,9 +349,9 @@ def run_sweep_with_dt_extrapolation(base_config, param_path, sweep_values, dt_ma
     print(f"Parameter sweep with dt extrapolation")
     print(f"  param       = {param_path}")
     print(f"  values      = {sweep_values}")
-    print(f"  dt_max      = {dt_max}  ({dt_runs_template[0]['n_block_steps']} blocks, "
+    print(f"  dt_max      = {dt_max}  ({dt_runs_template[0]['accumulation_blocks']} accum blocks, "
           f"{dt_runs_template[0]['n_steps_per_block']} steps/block)")
-    print(f"  dt_max/4    = {dt_small}  ({dt_runs_template[1]['n_block_steps']} blocks, "
+    print(f"  dt_max/4    = {dt_small}  ({dt_runs_template[1]['accumulation_blocks']} accum blocks, "
           f"{dt_runs_template[1]['n_steps_per_block']} steps/block)")
     print(f"  block_time  = {block_time:.4f}")
     print(f"  effort split: {effort_large} steps (dt_max, 1/9) + "
@@ -328,15 +368,36 @@ def run_sweep_with_dt_extrapolation(base_config, param_path, sweep_values, dt_ma
 
         dt_results = []
         failed = False
-        for run in dt_runs_template:
+        run_dirs = []
+        for i, run in enumerate(dt_runs_template):
             cfg = copy.deepcopy(base_config)
             set_nested(cfg, param_path, float(val))
             cfg["dmc"]["enabled"] = True
             cfg["dmc"]["delta_tau"] = run["dt"]
-            cfg["dmc"]["n_block_steps"] = run["n_block_steps"]
+            cfg["dmc"]["accumulation_blocks"] = run["accumulation_blocks"]
             cfg["dmc"]["n_steps_per_block"] = run["n_steps_per_block"]
 
             run_dir = os.path.join(param_dir, run["label"])
+            os.makedirs(run_dir, exist_ok=True)
+            run_dirs.append(run_dir)
+
+            if i == 0:
+                cfg["dmc"]["checkpoint"] = True
+                cfg["dmc"]["resume_from_checkpoint"] = False
+            else:
+                cfg["dmc"]["checkpoint"] = False
+                cfg["dmc"]["resume_from_checkpoint"] = True
+                cfg["dmc"]["equilibration_blocks"] = resume_equilibration_blocks
+                src_ckpt = os.path.join(run_dirs[0], "qmc_checkpoint.bin")
+                dst_ckpt = os.path.join(run_dir, "qmc_checkpoint.bin")
+                if os.path.exists(src_ckpt):
+                    shutil.copyfile(src_ckpt, dst_ckpt)
+                else:
+                    print(f"  [{param_label}/{run['label']}] WARNING: checkpoint not found, "
+                          f"falling back to fresh equilibration")
+                    cfg["dmc"]["resume_from_checkpoint"] = False
+                    cfg["dmc"]["equilibration_blocks"] = base_config["dmc"].get("equilibration_blocks", 200)
+
             data = run_single(cfg, f"{param_label}/{run['label']}", run_dir)
 
             if data is None or "dmc" not in data:
@@ -499,9 +560,13 @@ def main():
                         help="param_path start stop [step] for generic sweep")
     parser.add_argument("--dt-max", type=float, default=None,
                         help="Run 2-point dt extrapolation (Lee thesis protocol)")
-    parser.add_argument("--total-blocks", type=int, default=None,
-                        help="Override n_block_steps for the dt_max run "
-                             "(default: from config n_block_steps)")
+    parser.add_argument("--accumulation-blocks", type=int, default=None,
+                        help="Override accumulation_blocks for the dt_max run "
+                             "(default: from config accumulation_blocks)")
+    parser.add_argument("--resume-equilibration-blocks", type=int, default=0,
+                        help="Equilibration blocks for the dt_max/4 run that "
+                             "resumes from checkpoint (default: 0). Raise if "
+                             "the dt change introduces visible transient bias.")
     parser.add_argument("--binary", type=str, default=None,
                         help="Path to QMC binary")
     args = parser.parse_args()
@@ -513,8 +578,8 @@ def main():
     with open(args.config) as f:
         base_config = json.load(f)
 
-    base_blocks = (args.total_blocks if args.total_blocks is not None
-                   else base_config["dmc"].get("n_block_steps", 1000))
+    base_accum_blocks = (args.accumulation_blocks if args.accumulation_blocks is not None
+                         else base_config["dmc"].get("accumulation_blocks", 1000))
 
     has_sweep = len(args.sweep_args) >= 3
 
@@ -527,9 +592,11 @@ def main():
 
     if has_sweep and args.dt_max is not None:
         run_sweep_with_dt_extrapolation(
-            base_config, param_path, sweep_values, args.dt_max, base_blocks)
+            base_config, param_path, sweep_values, args.dt_max, base_accum_blocks,
+            args.resume_equilibration_blocks)
     elif args.dt_max is not None:
-        run_dt_extrapolation(base_config, args.dt_max, base_blocks)
+        run_dt_extrapolation(base_config, args.dt_max, base_accum_blocks,
+                             args.resume_equilibration_blocks)
     elif has_sweep:
         run_generic_sweep(base_config, param_path, sweep_values)
     else:

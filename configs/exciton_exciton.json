@@ -13,7 +13,15 @@
         "Nhh": 0,
         "Neh": 0,
         "wf_params_init": [
-            0.686498, -0.165499, 0.592686, -0.150484, -0.275674, -0.414204, 0.624957, -0.414204, 0.624957
+            0.686498,
+            -0.165499,
+            0.592686,
+            -0.150484,
+            -0.275674,
+            -0.414204,
+            0.624957,
+            -0.414204,
+            0.624957
         ]
     },
     "output": {
@@ -34,13 +42,18 @@
         "enabled": true,
         "delta_tau": 0.01,
         "fixed_node": false,
-        "max_branch": true,
+        "max_branch": false,
         "n_walkers_target": 50000,
-        "equilibration_blocks": 300,
-        "accumulation_blocks": 1000,
+
+        "equilibration_blocks": 0,
+        "accumulation_blocks": 3000,
         "n_steps_per_block": 100,
-        "dump_walkers": false,
-        "descendant_weighting": false,
+
+        "checkpoint": true,
+        "resume_from_checkpoint": true,
+        
+        "dump_walkers": true,
+        "descendant_weighting": true,
         "t_lag_blocks": 300,
         "tagging_interval_blocks": 10
     }
