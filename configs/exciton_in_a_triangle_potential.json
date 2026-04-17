@@ -19,8 +19,8 @@
             "a2": [450.0, 779.422863406] 
         },
 
-        "interacting": false,
-        "wf_params_init": [0.1000000000000000, -2.9, 1.0, 1,0]
+        "interacting": true,
+        "wf_params_init": [0.1, -2.8753, 1.72681, 1.62469]
     },
     "output": {
         "file": "results/exciton_in_a_triangle_potential/output"
@@ -40,11 +40,11 @@
         "enabled": true,
         "delta_tau": 0.01,
         "fixed_node": false,
-        "max_branch": true,
-        "n_walkers_target": 50000,
-        "n_block_steps": 1500,
+        "max_branch": false,
+        "n_walkers_target": 5000,
+        "equilibration_blocks": 0,
+        "accumulation_blocks": 1500,
         "n_steps_per_block": 100,
-        "running_average_window": 200,
         "dump_walkers": true,
         "descendant_weighting": true,
         "t_lag_blocks": 300,

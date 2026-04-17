@@ -235,24 +235,6 @@ System ExcitonExciton(const json& p) {
     return { std::move(ham), std::move(wf), buildPBC(p), nP, nD };
 }
 
-System ExcitonExcitonNonInteract(const json& p) {
-    double me = p.at("me"), mh = p.at("mh");
-    double mu = (me * mh) / (me + mh);
-    double d  = p.value("d", 0.2 * me / mu);
-
-    std::vector<double> masses  = { mu, mu };
-    std::vector<double> charges = p.at("charges").get<std::vector<double>>();
-    std::vector<double> alpha   = p.at("wf_alpha").get<std::vector<double>>();
-    int nP = p.at("nParticles"), nD = p.at("nDim");
-
-    auto ham = std::make_unique<ExcitonExcitonNonInteractHamiltonian>(
-        nP, nD, masses, charges, me, mh, d);
-    auto wf  = std::make_unique<ExcitonExcitonNonInteractWF>(
-        alpha, nP, nD, me, mh, d);
-    wf->setParameters(p.at("wf_params_init").get<std::vector<double>>());
-    return { std::move(ham), std::move(wf), buildPBC(p), nP, nD };
-}
-
 
 System buildSystem(const QMCConfig& cfg) {
     const std::string& name = cfg.systemName;
@@ -261,7 +243,6 @@ System buildSystem(const QMCConfig& cfg) {
     if      (name == "helium")              return Helium(p);
     else if (name == "monolayer_biexciton") return MonolayerBiexciton(p);
     else if (name == "exciton_exciton")     return ExcitonExciton(p);
-    else if (name == "exciton_exciton_non_interact")    return ExcitonExcitonNonInteract(p);
     else if (name == "twisted_heterobilayer_exciton")   return TwistedHeterobilayerExciton(p);
     else if (name == "exciton_in_a_square_potential")   return ExcitonInASquarePotential(p);
     else if (name == "exciton_in_a_triangle_potential") return ExcitonInATrianglePotential(p);

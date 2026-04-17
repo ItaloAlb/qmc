@@ -13,9 +13,9 @@ DMC::DMC(const Hamiltonian& hamiltonian_,
         bool descendantWeighting_,
         int tLagBlocks_,
         int taggingIntervalBlocks_,
-        int nBlockSteps_,
-        int nStepsPerBlock_,
-        int runningAverageWindow_)
+        int equilibrationBlocks_,
+        int accumulationBlocks_,
+        int nStepsPerBlock_)
     : hamiltonian(hamiltonian_),
       wf(wf_),
       pbc(pbc_),
@@ -26,14 +26,13 @@ DMC::DMC(const Hamiltonian& hamiltonian_,
       isMaxBranch(isMaxBranch_),
       dumpWalkers(dumpWalkers_),
       descendantWeighting(descendantWeighting_),
-      nBlockSteps(nBlockSteps_),
+      equilibrationBlocks(equilibrationBlocks_),
+      accumulationBlocks(accumulationBlocks_),
       nStepsPerBlock(nStepsPerBlock_),
-      runningAverageWindow(runningAverageWindow_),
       tLagBlocks(tLagBlocks_),
       taggingIntervalBlocks(taggingIntervalBlocks_),
       referenceEnergy(0.0),
       instEnergy(0.0),
-      meanEnergy(0.0),
       blockTotalMoves(0),
       blockAcceptedMoves(0)
 {
@@ -198,10 +197,8 @@ BlockResult DMC::blockStep(int nSteps) {
 
     if (nSteps > 1) {
         result.variance = mean2 / (nSteps - 1);
-        result.stdError = std::sqrt(result.variance / nSteps);
     } else {
         result.variance = 0.0;
-        result.stdError = 0.0;
     }
     return result;
 }
@@ -337,20 +334,29 @@ void DMC::initializeWalkers() {
     for (double e : localEnergy) totalEnergy += e;
 
     referenceEnergy = totalEnergy / nWalkers;
-    meanEnergy = referenceEnergy;
 }
 
 DMCResult DMC::run(const std::string& outputFile) {
     double blockTime = deltaTau * nStepsPerBlock;
 
-    std::ofstream fout(outputFile);
-    std::deque<double> energyQueue;
-
-    std::vector<double> blockMeanEnergies;
-    blockMeanEnergies.reserve(nBlockSteps);
-
-    int dumpStartBlock = std::max(0, nBlockSteps - runningAverageWindow);
+    std::ofstream fout;
     std::ofstream walkerFile;
+    std::ofstream descFile;
+
+    for (int j = 0; j < equilibrationBlocks; j++) {
+        BlockResult blockResult = blockStep(nStepsPerBlock);
+        updateReferenceEnergy(blockResult.energy, blockTime);
+
+        std::cout << "Block " << std::setw(4) << j
+                    << " | Block Energy = " << std::fixed << std::setprecision(8) << blockResult.energy
+                    << " | Reference Energy = " << std::fixed << std::setprecision(8) << referenceEnergy
+                    << " | Population = " << std::fixed << nWalkers
+                    << " | Variance = " << std::fixed << std::setprecision(8) << blockResult.variance
+                    << " | Acceptance Ratio = " << std::fixed << std::setprecision(8) << blockResult.acceptanceRatio
+                    << std::endl;
+    }
+
+    fout.open(outputFile);
     if (dumpWalkers) {
         std::string walkerPath = outputFile.substr(0, outputFile.rfind('.')) + "_walkers.bin";
         walkerFile.open(walkerPath, std::ios::binary);
@@ -362,21 +368,23 @@ DMCResult DMC::run(const std::string& outputFile) {
     //   int32  stride
     //   double taggedPositions[nTagged * stride]
     //   int32  descendantCounts[nTagged]
-    std::ofstream descFile;
     if (descendantWeighting) {
         std::string descPath = outputFile.substr(0, outputFile.rfind('.')) + "_descendants.bin";
         descFile.open(descPath, std::ios::binary);
     }
 
-    for (int j = 0; j < nBlockSteps; j++) {
+    std::vector<double> blockEnergies;
+    blockEnergies.reserve(accumulationBlocks);
 
-        // --- Descendant weighting: tag new walkers (overlapping scheme) ---
-        if (descendantWeighting && descFile.is_open() && (j % taggingIntervalBlocks == 0)) {
+    for (int k = 0; k < accumulationBlocks; k++) {
+        int j = equilibrationBlocks + k;
+
+        if (descendantWeighting && descFile.is_open() && (k % taggingIntervalBlocks == 0)) {
             ancestorsHistory.emplace_back(nWalkers);
             newAncestorsHistory.emplace_back(Constants::MAX_N_WALKERS);
             taggedPositionsHistory.emplace_back(nWalkers * stride);
             taggedCountHistory.emplace_back(nWalkers);
-            taggingBlocksHistory.emplace_back(j);
+            taggingBlocksHistory.emplace_back(k);
 
             std::vector<int>& currentAncestors = ancestorsHistory.back();
             std::vector<double>& currentTaggedPositions = taggedPositionsHistory.back();
@@ -390,7 +398,7 @@ DMCResult DMC::run(const std::string& outputFile) {
         BlockResult blockResult = blockStep(nStepsPerBlock);
 
         // --- Descendant weighting: harvest completed tagging events ---
-        while (!taggingBlocksHistory.empty() && (j - taggingBlocksHistory.front()) >= tLagBlocks) {
+        while (!taggingBlocksHistory.empty() && (k - taggingBlocksHistory.front()) >= tLagBlocks) {
             int currentNTagged = taggedCountHistory.front();
             std::vector<double>& currentTaggedPositions = taggedPositionsHistory.front();
 
@@ -416,25 +424,18 @@ DMCResult DMC::run(const std::string& outputFile) {
             taggingBlocksHistory.pop_front();
         }
 
-        energyQueue.push_back(blockResult.energy);
-        if (energyQueue.size() > runningAverageWindow) {
-            energyQueue.pop_front();
-        }
-
-        meanEnergy = std::accumulate(energyQueue.begin(), energyQueue.end(), 0.0) / energyQueue.size();
-
         updateReferenceEnergy(blockResult.energy, blockTime);
+
+        blockEnergies.push_back(blockResult.energy);
 
         fout << j << " "
              << blockResult.energy << " "
              << referenceEnergy << " "
-             << meanEnergy << " "
              << nWalkers << " "
              << blockResult.variance << " "
-             << blockResult.stdError << "\n";
+             << blockResult.acceptanceRatio << "\n";
 
-        // Dump walker positions for the last RUNNING_AVERAGE_WINDOW blocks
-        if (dumpWalkers && j >= dumpStartBlock && walkerFile.is_open()) {
+        if (dumpWalkers && walkerFile.is_open()) {
             int32_t nw = nWalkers;
             int32_t st = stride;
             walkerFile.write(reinterpret_cast<const char*>(&nw), sizeof(int32_t));
@@ -446,7 +447,6 @@ DMCResult DMC::run(const std::string& outputFile) {
         std::cout << "Block " << std::setw(4) << j
                     << " | Block Energy = " << std::fixed << std::setprecision(8) << blockResult.energy
                     << " | Reference Energy = " << std::fixed << std::setprecision(8) << referenceEnergy
-                    << " | Mean Energy = " << std::fixed << std::setprecision(8) << meanEnergy
                     << " | Population = " << std::fixed << nWalkers
                     << " | Variance = " << std::fixed << std::setprecision(8) << blockResult.variance
                     << " | Acceptance Ratio = " << std::fixed << std::setprecision(8) << blockResult.acceptanceRatio
@@ -457,22 +457,16 @@ DMCResult DMC::run(const std::string& outputFile) {
     if (walkerFile.is_open()) walkerFile.close();
     if (descFile.is_open()) descFile.close();
 
+    double mean = 0.0;
+    for (double e : blockEnergies) mean += e;
+    if (!blockEnergies.empty()) mean /= blockEnergies.size();
+
     double variance = 0.0;
-    for (double energy : energyQueue) {
-        variance += (energy - meanEnergy) * (energy - meanEnergy);
-    }
-
-    double stdError = 0.0;
-    if (energyQueue.size() > 1) {
-        variance /= (energyQueue.size() - 1);
-
-        stdError = std::sqrt(variance / energyQueue.size());
-    }
+    for (double e : blockEnergies) variance += (e - mean) * (e - mean);
 
     std::cout << std::fixed << std::setprecision(8);
-    std::cout << "Mean Energy: " << meanEnergy << std::endl;
+    std::cout << "Mean Energy: " << mean << std::endl;
     std::cout << "Variance: " << variance << std::endl;
-    std::cout << "Standard Error: " << stdError << std::endl;
 
-    return { meanEnergy, variance, stdError };
+    return { mean, variance };
 }

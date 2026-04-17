@@ -5,7 +5,9 @@ Plot DMC energy vs block step and run convergence diagnostics.
 Usage:
     python plot_energy.py <output.dat> [--equil N] [--output energy.png]
 
-Columns: block  block_energy  reference_energy  mean_energy  n_walkers  variance  std_error
+Columns: block  block_energy  reference_energy  n_walkers  variance  acceptance_ratio
+The .dat file contains accumulation-phase blocks only — equilibration is dropped
+in DMC::run().
 """
 
 import argparse
@@ -75,10 +77,10 @@ def main():
     block        = data[:, 0].astype(int)
     block_energy = data[:, 1]
     ref_energy   = data[:, 2]
-    mean_energy  = data[:, 3]
 
-    # --- Equilibration ---
-    equil = args.equil if args.equil is not None else detect_equilibration(block_energy)
+    # --- Equilibration (kept as a safety check; the .dat file should already
+    # exclude the equilibration phase). Default cutoff is 0. ---
+    equil = args.equil if args.equil is not None else 0
     production = block_energy[equil:]
     n_prod = len(production)
 
@@ -106,7 +108,6 @@ def main():
     ax = axes[0]
     ax.plot(block, block_energy, alpha=0.35, lw=0.8, label="Block energy")
     ax.plot(block, ref_energy, lw=1.2, label="Reference energy")
-    ax.plot(block, mean_energy, lw=1.5, label="Running mean")
     ax.axvline(equil, color="k", ls="--", lw=1, label=f"Equilibration ({equil})")
     ax.axhline(E_mean, color="tab:red", ls=":", lw=1,
                label=f"E = {E_mean:.6f} ± {blocked_err:.6f}")

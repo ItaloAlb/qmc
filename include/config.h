@@ -36,9 +36,9 @@ struct DMCConfig {
     bool descendantWeighting;
     int tLagBlocks;
     int taggingIntervalBlocks;
-    int nBlockSteps;
+    int equilibrationBlocks;
+    int accumulationBlocks;
     int nStepsPerBlock;
-    int runningAverageWindow;
     int nWalkersTarget;
 };
 
@@ -91,9 +91,9 @@ struct QMCConfig {
             d.value("descendant_weighting", false),
             d.value("t_lag_blocks", 10),
             d.value("tagging_interval_blocks", 1),
-            d.value("n_block_steps", 1000),
+            d.value("equilibration_blocks", 200),
+            d.value("accumulation_blocks", 800),
             d.value("n_steps_per_block", 100),
-            d.value("running_average_window", 100),
             d.value("n_walkers_target", Constants::N_WALKERS_TARGET)
         };
 

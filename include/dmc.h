@@ -22,14 +22,12 @@
 struct BlockResult {
     double energy;
     double variance;
-    double stdError;
     double acceptanceRatio;
 };
 
 struct DMCResult {
     double energy;
     double variance;
-    double stdError;
 };
 
 class DMC {
@@ -39,9 +37,9 @@ class DMC {
         const PeriodicBoundary* pbc;
 
         int nWalkers, nWalkersTarget, nParticles, dim, stride, blockTotalMoves, blockAcceptedMoves;
-        int nBlockSteps, nStepsPerBlock, runningAverageWindow;
+        int equilibrationBlocks, accumulationBlocks, nStepsPerBlock;
         int tLagBlocks;
-        double deltaTau, invDeltaTau, referenceEnergy, instEnergy, meanEnergy;
+        double deltaTau, invDeltaTau, referenceEnergy, instEnergy;
         bool isFixedNode, isMaxBranch, dumpWalkers, descendantWeighting;
 
         std::vector<std::mt19937> gens;
@@ -79,9 +77,9 @@ class DMC {
             bool descendantWeighting = false,
             int tLagBlocks = 300,
             int taggingIntervalBlocks = 10,
-            int nBlockSteps = 1000,
-            int nStepsPerBlock = 100,
-            int runningAverageWindow = 100);
+            int equilibrationBlocks = 200,
+            int accumulationBlocks = 800,
+            int nStepsPerBlock = 100);
 
         DMCResult run(const std::string& outputFile = "qmc.dat");
 };

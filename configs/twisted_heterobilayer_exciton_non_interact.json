@@ -49,8 +49,8 @@
         "max_branch": true,
         "dump_walkers": false,
         "descendant_weighting": false,
-        "n_block_steps": 1000,
-        "n_steps_per_block": 100,
-        "running_average_window": 100
+        "equilibration_blocks": 900,
+        "accumulation_blocks": 100,
+        "n_steps_per_block": 100
     }
 }

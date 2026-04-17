@@ -9,14 +9,11 @@
         "nParticles": 2,
         "nDim": 2,
         "interacting": true,
-        "Nee": 8,
-        "Nhh": 8,
-        "Neh": 8,
+        "Nee": 0,
+        "Nhh": 0,
+        "Neh": 0,
         "wf_params_init": [
-            2.20353, -0.206604, 2.13437, -0.177941, -0.102956, 0.851758, 1.98113, 0.851758, 1.98113,
-            2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-            2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-            2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            0.686498, -0.165499, 0.592686, -0.150484, -0.275674, -0.414204, 0.624957, -0.414204, 0.624957
         ]
     },
     "output": {
@@ -29,19 +26,19 @@
         "samples_per_epoch": 100000
     },
     "vmc": {
-        "enabled": true,
+        "enabled": false,
         "n_steps": 10000000,
         "n_equilibration": 1000000
     },
     "dmc": {
         "enabled": true,
-        "delta_tau": 0.05,
+        "delta_tau": 0.01,
         "fixed_node": false,
         "max_branch": true,
         "n_walkers_target": 50000,
-        "n_block_steps": 1000,
-        "n_steps_per_block": 20,
-        "running_average_window": 100,
+        "equilibration_blocks": 300,
+        "accumulation_blocks": 1000,
+        "n_steps_per_block": 100,
         "dump_walkers": false,
         "descendant_weighting": false,
         "t_lag_blocks": 300,
