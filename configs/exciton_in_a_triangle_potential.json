@@ -16,17 +16,17 @@
 
         "pbc": {
             "a1": [900.0, 0.0],
-            "a2": [450.0, 779.422863406] 
+            "a2": [450.0, 779.422863406]
         },
 
         "interacting": true,
-        "wf_params_init": [0.1, -2.8753, 1.72681, 1.62469]
+        "wf_params_init": [-0.955987, -3.11827, -1.71024, -1.74041]
     },
     "output": {
         "file": "results/exciton_in_a_triangle_potential/output"
     },
     "optimizer": {
-        "enabled": true,
+        "enabled": false,
         "learning_rate": 0.1,
         "max_epochs": 50,
         "samples_per_epoch": 100000
@@ -41,10 +41,10 @@
         "delta_tau": 0.01,
         "fixed_node": false,
         "max_branch": false,
-        "n_walkers_target": 5000,
+        "n_walkers_target": 50000,
 
         "equilibration_blocks": 0,
-        "accumulation_blocks": 1500,
+        "accumulation_blocks": 10000,
         "n_steps_per_block": 100,
 
         "checkpoint": true,
@@ -52,7 +52,7 @@
         
         "dump_walkers": true,
         "descendant_weighting": true,
-        "t_lag_blocks": 300,
-        "tagging_interval_blocks": 10
+        "t_lag_blocks": 1000,
+        "tagging_interval_blocks": 100
     }
 }

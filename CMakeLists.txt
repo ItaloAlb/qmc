@@ -3,6 +3,10 @@
 cmake_minimum_required(VERSION 3.10)
 add_compile_definitions(_USE_MATH_DEFINES)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 # Define o nome do projeto, sua versão e a linguagem de programação.
 project(
     QMC_Project
