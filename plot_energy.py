@@ -78,53 +78,32 @@ def main():
     block_energy = data[:, 1]
     ref_energy   = data[:, 2]
 
-    # --- Equilibration (kept as a safety check; the .dat file should already
-    # exclude the equilibration phase). Default cutoff is 0. ---
     equil = args.equil if args.equil is not None else 0
     production = block_energy[equil:]
     n_prod = len(production)
 
     # --- Statistics ---
     E_mean = np.mean(production)
-    naive_err = np.std(production, ddof=1) / np.sqrt(n_prod)
-    bsizes, berrors = block_average(production)
-    blocked_err = berrors[-1] if len(berrors) > 0 else naive_err
-    z_score, converged = geweke_test(production)
 
     # --- Print report ---
     print(f"Total blocks:        {len(block_energy)}")
     print(f"Equilibration cutoff: {equil}")
     print(f"Production blocks:   {n_prod}")
     print(f"Mean energy:         {E_mean:.8f}")
-    print(f"Naive std error:     {naive_err:.8f}")
-    print(f"Block-avg error:     {blocked_err:.8f}")
-    print(f"Geweke z-score:      {z_score:.3f}  ({'CONVERGED' if converged else 'NOT CONVERGED'})")
 
     # --- Plot ---
-    fig, axes = plt.subplots(2, 1, figsize=(10, 8), height_ratios=[3, 1],
-                             gridspec_kw={"hspace": 0.3})
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-    # Top panel: energy traces
-    ax = axes[0]
+    # Energy traces
     ax.plot(block, block_energy, alpha=0.35, lw=0.8, label="Block energy")
     ax.plot(block, ref_energy, lw=1.2, label="Reference energy")
     ax.axvline(equil, color="k", ls="--", lw=1, label=f"Equilibration ({equil})")
     ax.axhline(E_mean, color="tab:red", ls=":", lw=1,
-               label=f"E = {E_mean:.6f} ± {blocked_err:.6f}")
-    ax.axhspan(E_mean - blocked_err, E_mean + blocked_err, color="tab:red", alpha=0.12)
+            label=f"E = {E_mean:.6f}")
+
     ax.set_xlabel("Block")
     ax.set_ylabel("Energy (Hartree)")
     ax.set_title("DMC Energy vs Block Step")
-    ax.legend(fontsize=9)
-
-    # Bottom panel: block averaging error
-    ax = axes[1]
-    ax.plot(bsizes, berrors, "o-", ms=4)
-    ax.axhline(naive_err, color="gray", ls="--", lw=0.8, label="Naive error")
-    ax.set_xscale("log", base=2)
-    ax.set_xlabel("Block size")
-    ax.set_ylabel("Std error")
-    ax.set_title("Block Averaging (error plateau = converged autocorrelation)")
     ax.legend(fontsize=9)
 
     fig.tight_layout()

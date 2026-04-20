@@ -84,7 +84,7 @@ def dmc_is_valid(data, output_base):
     if data is None or "dmc" not in data:
         return False
     dmc = data["dmc"]
-    if dmc["energy"] == 0.0 or dmc["std_error"] == 0.0:
+    if dmc["energy"] == 0.0:
         return False
     dat_path = output_base + ".dat"
     if os.path.exists(dat_path):
@@ -92,8 +92,8 @@ def dmc_is_valid(data, output_base):
             lines = f.readlines()
         if lines:
             last_cols = lines[-1].split()
-            if len(last_cols) >= 5:
-                final_population = int(last_cols[4])
+            if len(last_cols) >= 4:
+                final_population = int(last_cols[3])
                 if final_population == 0:
                     return False
     return True
@@ -145,23 +145,13 @@ def dt_extrapolation(results):
 
     E(dt) = E_0 + kappa * dt
     """
-    dt1, e1, s1 = results[0]["dt"], results[0]["dmc_energy"], results[0]["dmc_std_error"]
-    dt2, e2, s2 = results[1]["dt"], results[1]["dmc_energy"], results[1]["dmc_std_error"]
-
-    # Weighted linear fit
-    w1 = 1.0 / s1**2
-    w2 = 1.0 / s2**2
+    dt1, e1 = results[0]["dt"], results[0]["dmc_energy"]
+    dt2, e2 = results[1]["dt"], results[1]["dmc_energy"]
 
     kappa = (e2 - e1) / (dt2 - dt1)
     E0 = e1 - kappa * dt1
 
-    # Error propagation for E0
-    # E0 = e1 - (e2 - e1) * dt1 / (dt2 - dt1)
-    #    = e1 * (1 + dt1/(dt2-dt1)) - e2 * dt1/(dt2-dt1)
-    r = dt1 / (dt2 - dt1)
-    sigma_E0 = np.sqrt((1 + r)**2 * s1**2 + r**2 * s2**2)
-
-    return E0, sigma_E0, kappa
+    return E0, kappa
 
 
 def compute_dt_runs(dt_max, block_time, base_accum_blocks):
@@ -263,21 +253,20 @@ def run_dt_extrapolation(base_config, dt_max, base_accum_blocks, resume_equilibr
             "dt": run["dt"],
             "n_block_steps": run["n_block_steps"],
             "dmc_energy": data["dmc"]["energy"],
-            "dmc_std_error": data["dmc"]["std_error"],
             "dmc_variance": data["dmc"]["variance"],
         }
         sweep_results.append(entry)
-        print(f"  [{run['label']}] E = {entry['dmc_energy']:.8f} +/- {entry['dmc_std_error']:.8f}")
+        print(f"  [{run['label']}] E = {entry['dmc_energy']:.8f}")
         print()
 
     # Extrapolate
-    E0, sigma_E0, kappa = dt_extrapolation(sweep_results)
+    E0, kappa = dt_extrapolation(sweep_results)
 
     print("=" * 55)
-    print(f"  E(dt_max)   = {sweep_results[0]['dmc_energy']:.8f} +/- {sweep_results[0]['dmc_std_error']:.8f}")
-    print(f"  E(dt_max/4) = {sweep_results[1]['dmc_energy']:.8f} +/- {sweep_results[1]['dmc_std_error']:.8f}")
+    print(f"  E(dt_max)   = {sweep_results[0]['dmc_energy']:.8f}")
+    print(f"  E(dt_max/4) = {sweep_results[1]['dmc_energy']:.8f}")
     print(f"  kappa       = {kappa:.8f}")
-    print(f"  E(dt->0)    = {E0:.8f} +/- {sigma_E0:.8f}")
+    print(f"  E(dt->0)    = {E0:.8f}")
     print("=" * 55)
 
     # Save summary
@@ -285,7 +274,6 @@ def run_dt_extrapolation(base_config, dt_max, base_accum_blocks, resume_equilibr
         "dt_max": dt_max,
         "dt_small": dt_small,
         "E0": E0,
-        "sigma_E0": sigma_E0,
         "kappa": kappa,
         "runs": sweep_results,
     }
@@ -299,9 +287,8 @@ def run_dt_extrapolation(base_config, dt_max, base_accum_blocks, resume_equilibr
 
     dts = np.array([r["dt"] for r in sweep_results])
     es = np.array([r["dmc_energy"] for r in sweep_results])
-    errs = np.array([r["dmc_std_error"] for r in sweep_results])
 
-    ax.errorbar(dts, es, yerr=errs, fmt="ko", capsize=4, markersize=8, label="DMC runs")
+    ax.plot(dts, es, "ko", markersize=8, label="DMC runs")
 
     # Extrapolation line
     dt_line = np.linspace(0, dt_max * 1.1, 100)
@@ -309,8 +296,7 @@ def run_dt_extrapolation(base_config, dt_max, base_accum_blocks, resume_equilibr
     ax.plot(dt_line, e_line, "r--", alpha=0.7, label="linear fit")
 
     # E(0) marker
-    ax.errorbar([0], [E0], yerr=[sigma_E0], fmt="rs", capsize=4, markersize=10,
-                label=f"$E_0$ = {E0:.6f} $\\pm$ {sigma_E0:.6f}")
+    ax.plot([0], [E0], "rs", markersize=10, label=f"$E_0$ = {E0:.6f}")
 
     ax.set_xlabel(r"$\delta\tau$")
     ax.set_ylabel(r"$E_{\mathrm{DMC}}$")
@@ -408,23 +394,20 @@ def run_sweep_with_dt_extrapolation(base_config, param_path, sweep_values, dt_ma
             dt_results.append({
                 "dt": run["dt"],
                 "dmc_energy": data["dmc"]["energy"],
-                "dmc_std_error": data["dmc"]["std_error"],
                 "dmc_variance": data["dmc"]["variance"],
             })
-            print(f"  [{run['label']}] E = {dt_results[-1]['dmc_energy']:.8f} "
-                  f"+/- {dt_results[-1]['dmc_std_error']:.8f}")
+            print(f"  [{run['label']}] E = {dt_results[-1]['dmc_energy']:.8f}")
 
         if failed or len(dt_results) < 2:
             continue
 
-        E0, sigma_E0, kappa = dt_extrapolation(dt_results)
-        print(f"  E(dt->0) = {E0:.8f} +/- {sigma_E0:.8f}")
+        E0, kappa = dt_extrapolation(dt_results)
+        print(f"  E(dt->0) = {E0:.8f}")
         print()
 
         entry = {
             "param_value": float(val),
             "dmc_energy": E0,
-            "dmc_std_error": sigma_E0,
             "kappa": kappa,
             "dt_runs": dt_results,
         }
@@ -448,10 +431,9 @@ def run_sweep_with_dt_extrapolation(base_config, param_path, sweep_values, dt_ma
     params = [r["param_value"] for r in sweep_results]
     fig, ax = plt.subplots(figsize=(8, 5))
 
-    ax.errorbar(params,
-                [r["dmc_energy"] for r in sweep_results],
-                yerr=[r["dmc_std_error"] for r in sweep_results],
-                fmt="o-", label=r"DMC $(\delta\tau \to 0)$", capsize=3)
+    ax.plot(params,
+            [r["dmc_energy"] for r in sweep_results],
+            "o-", label=r"DMC $(\delta\tau \to 0)$")
 
     if "vmc_energy" in sweep_results[0]:
         ax.errorbar(params,
@@ -505,8 +487,7 @@ def run_generic_sweep(base_config, param_path, sweep_values):
 
         entry = {"param_value": float(val)}
         if "dmc" in data:
-            entry["dmc_energy"]    = data["dmc"]["energy"]
-            entry["dmc_std_error"] = data["dmc"]["std_error"]
+            entry["dmc_energy"] = data["dmc"]["energy"]
         if "vmc" in data:
             entry["vmc_energy"]    = data["vmc"]["energy"]
             entry["vmc_std_error"] = data["vmc"]["std_error"]
@@ -528,10 +509,9 @@ def run_generic_sweep(base_config, param_path, sweep_values):
     fig, ax = plt.subplots(figsize=(8, 5))
 
     if "dmc_energy" in sweep_results[0]:
-        ax.errorbar(params,
-                    [r["dmc_energy"] for r in sweep_results],
-                    yerr=[r["dmc_std_error"] for r in sweep_results],
-                    fmt="o-", label="DMC", capsize=3)
+        ax.plot(params,
+                [r["dmc_energy"] for r in sweep_results],
+                "o-", label="DMC")
 
     if "vmc_energy" in sweep_results[0]:
         ax.errorbar(params,
