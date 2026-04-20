@@ -430,8 +430,11 @@ DMCResult DMC::run(const std::string& outputFile) {
 
     std::string checkpointPath = outputFile.substr(0, outputFile.rfind('.')) + "_checkpoint.bin";
 
+    bool resumed = false;
     if (resumeFromCheckpoint) {
-        if (!loadCheckpoint(checkpointPath)) {
+        if (loadCheckpoint(checkpointPath)) {
+            resumed = true;
+        } else {
             std::cout << "No usable checkpoint at " << checkpointPath
                       << " — running full equilibration." << std::endl;
         }
@@ -455,10 +458,31 @@ DMCResult DMC::run(const std::string& outputFile) {
         std::cout << "Checkpoint written: " << checkpointPath << std::endl;
     }
 
-    fout.open(outputFile);
+    // On resume, count how many accumulation blocks are already in output.dat
+    // so we can append and continue the block numbering from there.
+    int nDone = 0;
+    if (resumed) {
+        std::ifstream existing(outputFile);
+        std::string line;
+        while (std::getline(existing, line)) {
+            if (!line.empty()) nDone++;
+        }
+        if (nDone > 0) {
+            std::cout << "Resuming accumulation: " << nDone
+                      << " blocks already in " << outputFile << std::endl;
+        }
+    }
+
+    const bool append = (resumed && nDone > 0);
+    std::ios::openmode txtMode = append ? (std::ios::out | std::ios::app)
+                                        : (std::ios::out | std::ios::trunc);
+    std::ios::openmode binMode = append ? (std::ios::binary | std::ios::app)
+                                        : (std::ios::binary | std::ios::trunc);
+
+    fout.open(outputFile, txtMode);
     if (dumpWalkers) {
         std::string walkerPath = outputFile.substr(0, outputFile.rfind('.')) + "_walkers.bin";
-        walkerFile.open(walkerPath, std::ios::binary);
+        walkerFile.open(walkerPath, binMode);
     }
 
     // Descendant weighting file (binary).
@@ -469,13 +493,13 @@ DMCResult DMC::run(const std::string& outputFile) {
     //   int32  descendantCounts[nTagged]
     if (descendantWeighting) {
         std::string descPath = outputFile.substr(0, outputFile.rfind('.')) + "_descendants.bin";
-        descFile.open(descPath, std::ios::binary);
+        descFile.open(descPath, binMode);
     }
 
     std::vector<double> blockEnergies;
     blockEnergies.reserve(accumulationBlocks);
 
-    for (int k = 0; k < accumulationBlocks; k++) {
+    for (int k = nDone; k < accumulationBlocks; k++) {
         int j = equilibrationBlocks + k;
 
         if (descendantWeighting && descFile.is_open() && (k % taggingIntervalBlocks == 0)) {

@@ -187,6 +187,7 @@ System ExcitonInATrianglePotential(const json& p) {
 
     std::vector<double> initP(5, 0.0);
     if (interacting) {
+        // c1 is fixed by the Kato cusp condition
         double c1 = (me * mh) / ((eps1 + eps2) * rho0 * (me + mh));
         initP[0] = c1;
         initP[1] = std::exp(optP[0]);  // c2 (config gives log-space)

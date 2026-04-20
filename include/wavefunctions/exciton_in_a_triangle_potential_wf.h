@@ -22,7 +22,7 @@ public:
     }
 
     // Layout dos parâmetros internos (sempre 5 posições):
-    //   [0] c1       (jastrow, fixo por condição de cúspide)
+    //   [0] c1       (jastrow, fixo por condição de cúspide de Kato)
     //   [1] c2       (jastrow, variacional)
     //   [2] c3       (jastrow, variacional)
     //   [3] lambda_e (peso variacional do potencial triangular para o elétron)
@@ -101,19 +101,22 @@ public:
     }
 
     double trialWaveFunction(const double* position) const override {
-        double jastrow = 1.0;
-        if (interacting) {
-            int idx_e = 0;
-            int idx_h = 1 * dim;
-            double r2 = thicknessSquared;
-            for (int k = 0; k < dim; k++) {
-                double d = position[idx_e + k] - position[idx_h + k];
-                r2 += d * d;
-            }
-            double r = std::sqrt(r2);
-            jastrow = jastrowEH(r, r2);
+        double V = variationalPotential(position);
+        double exp = std::exp(-V);
+        if (!interacting) {
+            return exp;
         }
 
-        return jastrow * (1.0 - variationalPotential(position));
+        int idx_e = 0;
+        int idx_h = 1 * dim;
+        double r2 = 0.0;
+        for (int k = 0; k < dim; k++) {
+            double d = position[idx_e + k] - position[idx_h + k];
+            r2 += d * d;
+        }
+        double r = std::sqrt(r2);
+        double jastrow = jastrowEH(r, r2);
+
+        return jastrow * exp;
     }
 };
